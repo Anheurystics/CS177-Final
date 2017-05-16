@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec3 vPosition;
+attribute vec3 vNormal;
+attribute vec2 vUV;
+
+uniform vec3 color;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 normalMatrix;
+
+varying vec3 Color;
+varying vec3 Normal;
+varying vec3 FragPosition;
+varying vec2 UV;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(vPosition, 1.0);
+    Color = color;
+    Normal = normalize(vec3(normalMatrix * vec4(vNormal, 1.0)));
+    FragPosition = vec3(model * vec4(vPosition, 1.0));
+    UV = vUV;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision highp float;
+
+varying vec3 Color;
+varying vec3 Normal;
+varying vec3 FragPosition;
+varying vec2 UV;
+
+struct Light {
+    bool enabled;
+    vec4 position;
+    vec3 color;
+    vec3 attenuation;
+    float intensity;
+
+    vec3 direction;
+    float angle;
+};
+
+uniform vec3 Ka;
+uniform vec3 Kd;
+uniform vec3 Ks;
+uniform float Ns;
+
+uniform sampler2D tex;
+
+#define MAX_NUM_LIGHTS 16
+uniform Light lights[MAX_NUM_LIGHTS];
+
+uniform mat4 view;
+uniform vec3 cameraPosition;
+uniform bool blinn;
+uniform bool useTexture;
+
+vec3 calculateLight(Light light, vec3 camera, vec3 surface, vec3 normal) {
+    vec3 L;
+    if(light.position.w == 0.0) {
+         L = light.position.xyz;
+    } else {
+         L = light.position.xyz - surface;
+    }
+
+    float D = length(L);
+    L = normalize(L);
+    vec3 E = normalize(camera - surface);
+    vec3 H = normalize(L + E);
+
+    vec3 diffuse = Kd * max(dot(normal, L), 0.0) * light.color;
+    float specularBase = blinn? dot(normal, H) : dot(normalize(camera - surface), reflect(-L, normal));
+    vec3 specular = Ks * pow(max(specularBase, 0.0), Ns) * light.color;
+    specular = max(specular, 0.0);
+
+    vec3 attenuationFactor = light.attenuation;
+
+    if(length(light.direction) > 0.0) {
+        float angle = degrees(acos(dot(-L, vec3(0.0, -1.0, 0.0))));
+        if(angle > light.angle) {
+            attenuationFactor.y += min(pow((angle - light.angle) / 10.0, 5.0), 0.9);
+        }
+    }
+
+    if(dot(Normal, L) < 0.0) {
+        specular = vec3(0.0, 0.0, 0.0);
+    }
+
+    float attenuation = light.intensity / dot(vec3(1.0, D, D * D), attenuationFactor);
+
+    return attenuation * (diffuse + specular);
+}
+
+void main()
+{
+    vec3 totalLight = Ka * Color;
+
+    if(useTexture) {
+        totalLight *= texture2D(tex, UV).rgb;
+    }
+
+    for(int i = 0; i < MAX_NUM_LIGHTS; i++) {
+        if(lights[i].enabled) {
+            totalLight += calculateLight(lights[i], cameraPosition, FragPosition, Normal);
+        }
+    }
+
+    if(totalLight.r > 1.0 || totalLight.g > 1.0 || totalLight.b > 1.0) {
+        float maxComponent = max(totalLight.r, max(totalLight.g, totalLight.b));
+        totalLight.r /= maxComponent;
+        totalLight.g /= maxComponent;
+        totalLight.b /= maxComponent;
+    }
+
+    gl_FragColor = vec4(totalLight, 1.0);
+}
+</script>
+
+<script id="gouraud-vertex-shader" type="x-shader/x-vertex">
+attribute vec3 vPosition;
+attribute vec3 vNormal;
+
+uniform vec3 color;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+uniform mat4 normalMatrix;
+uniform vec3 cameraPosition;
+uniform bool blinn;
+
+struct Light {
+    bool enabled;
+    vec4 position;
+    vec3 color;
+    vec3 attenuation;
+    float intensity;
+
+    vec3 direction;
+    float angle;
+};
+
+#define MAX_NUM_LIGHTS 16
+uniform Light lights[MAX_NUM_LIGHTS];
+
+vec3 calculateLight(Light light, vec3 camera, vec3 surface, vec3 normal) {
+    vec3 L;
+    if(light.position.w == 0.0) {
+         L = light.position.xyz;
+    } else {
+         L = light.position.xyz - surface;
+    }
+
+    float D = length(L);
+    L = normalize(L);
+    vec3 E = normalize(camera - surface);
+    vec3 H = normalize(L + E);
+
+    float kD = 1.0;
+    float kS = 1.0;
+    float shininess = 25.0;
+    if(blinn)
+        shininess *= 4.0;
+
+    vec3 diffuse = kD * max(dot(normal, L), 0.0) * light.color;
+    float specularBase = blinn? dot(normal, H) : dot(normalize(camera - surface), reflect(-L, normal));
+    vec3 specular = kS * pow(max(specularBase, 0.0), shininess) * light.color;
+
+    vec3 attenuationFactor = light.attenuation;
+
+    if(length(light.direction) > 0.0) {
+        float angle = degrees(acos(dot(-L, vec3(0.0, -1.0, 0.0))));
+        if(angle > light.angle) {
+            attenuationFactor.y += min(pow((angle - light.angle) / 10.0, 5.0), 0.9);
+        }
+    }
+
+    if(dot(normal, L) < 0.0) {
+        specular = vec3(0.0, 0.0, 0.0);
+    }
+
+    float attenuation = light.intensity / dot(vec3(1.0, D, D * D), attenuationFactor);
+    return attenuation * (diffuse + specular);
+}
+
+varying vec3 TotalLight;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(vPosition, 1.0);
+    
+    vec3 Color = color;
+    vec3 Normal = normalize(vec3(normalMatrix * vec4(vNormal, 1.0)));
+    vec3 FragPosition = vec3(model * vec4(vPosition, 1.0));
+
+    float kA = 0.5;
+    vec3 totalLight = kA * Color;
+
+    for(int i = 0; i < MAX_NUM_LIGHTS; i++) {
+        if(lights[i].enabled) {
+            totalLight += calculateLight(lights[i], cameraPosition, FragPosition, Normal);
+        }
+    }
+
+    if(totalLight.r > 1.0 || totalLight.g > 1.0 || totalLight.b > 1.0) {
+        float maxComponent = max(totalLight.r, max(totalLight.g, totalLight.b));
+        totalLight.r /= maxComponent;
+        totalLight.g /= maxComponent;
+        totalLight.b /= maxComponent;
+    }
+
+    TotalLight = totalLight;
+}
+</script>
+
+<script id="gouraud-fragment-shader" type="x-shader/x-fragment">
+precision highp float;
+
+varying vec3 TotalLight;
+
+void main()
+{
+    gl_FragColor = vec4(TotalLight, 1.0);
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="shapes.js"></script>
+<script type="text/javascript" src="preload.js"></script>
+<script type="text/javascript" src="script.js"></script>
+</head>
+
+<body>
+<canvas id="gl-canvas" width="800" height="800">Oops ... your browser doesn't support the HTML5 canvas element</canvas>
+<canvas id="overlay" width="800" height="800"></canvas>
+</body>
+
+<style>
+    #gl-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    #overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+</style>
+</html>
