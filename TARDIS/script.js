@@ -5,13 +5,13 @@ var gl, ctx,
     usePerspective = false,
     matrixStack = [],
     modelOutlines = false,
-    lookAt = lookAt([0, 0, -20], [0, 0, 0], [0, 1, 0]);
+    cx = 0, cy = 0, cz = -8,
+    cameraLookAt = lookAt([cx, cy, -cz], [0, 0, 0], [0, 1, 0]);
 
-var tardisExterior, tardisInterior,
-    root;
+var tardisExterior, tardisExteriorStencil, tardisInterior, tardisInteriorV2;
 
-var pitch = 20;
-var yaw = 0;
+var pitch = 0;
+var yaw = 180;
 var lastUpdate = 0;
 var cachedFPS = 0;
 var fpsCount = 0;
@@ -20,25 +20,29 @@ var gouraud = false;
 var blinn = true;
 var lightEnabled = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
 var tardisExteriorMaterial, tardisInteriorMaterial, defaultMaterial;
+var tardisInteriorV2Material;
 
 var preloader = new Preloader(init);
 preloader.addText("tardis_exterior.obj");
 preloader.addText("tardis_exterior.mtl");
+preloader.addText("tardis_exterior_stencil.obj");
 preloader.addText("tardis_interior.obj");
 preloader.addText("tardis_interior.mtl");
+preloader.addText("tardis-interior-v2.obj");
+preloader.addText("tardis-interior-v2.mtl");
 preloader.preload();
 
 function loadMTL(mtlSource) {
     var materials = [];
     var current = null;
     var lines = mtlSource.split("\n");
-    for(var i = 0; i < lines.length; i++) {
+    for (var i = 0; i < lines.length; i++) {
         var tokens = lines[i].split(" ");
-        if(tokens[0] == "newmtl") {
+        if (tokens[0] == "newmtl") {
             current = materials[tokens[1]] = new Material();
-        } else if(tokens[0] == "Ns") {
+        } else if (tokens[0] == "Ns") {
             current.Ns = parseFloat(tokens[1]);
-        } else if(tokens[0] == "Ka") {
+        } else if (tokens[0] == "Ka") {
             current.Ka = [
                 parseFloat(tokens[1]),
                 parseFloat(tokens[2]),
@@ -75,7 +79,7 @@ class Material {
     }
 
     loadTexture() {
-        if(this.map_Kd != undefined) {
+        if (this.map_Kd != undefined) {
             this.texture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, preloader.getImage(this.map_Kd));
@@ -92,7 +96,7 @@ class Material {
         gl.uniform3fv(gl.getUniformLocation(program, "Ks"), this.Ks);
         gl.uniform1f(gl.getUniformLocation(program, "Ns"), this.Ns);
         gl.uniform1f(gl.getUniformLocation(program, "useTexture"), this.texture != undefined);
-        if(this.texture != undefined) {
+        if (this.texture != undefined) {
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
         }
     }
@@ -132,7 +136,7 @@ class Model {
         gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 12, 0);
         gl.enableVertexAttribArray(vNormal);
 
-        if(this.uvBuffer != undefined) {
+        if (this.uvBuffer != undefined) {
             gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
             var vUV = gl.getAttribLocation(program, "vUV");
             gl.vertexAttribPointer(vUV, 2, gl.FLOAT, false, 8, 0);
@@ -141,7 +145,7 @@ class Model {
             gl.disableVertexAttribArray(gl.getAttribLocation(program, "vUV"));
         }
     }
-    
+
     render(program, transform, color = [.8, .8, .8]) {
         gl.uniform3fv(gl.getUniformLocation(program, "color"), color);
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "model"), false, flatten(transform));
@@ -156,19 +160,33 @@ class Model {
 function init() {
     var canvas = document.getElementById("gl-canvas");
     ctx = document.getElementById("overlay").getContext("2d");
-    window.onkeypress = function (e) {
+    window.onkeydown = function (e) {
         var degsPerSecond = 60 / 60;
-
+        var moveSpeed = 0.5;
         if (e.code == "KeyW") {
-            pitch += degsPerSecond;
+            cz += moveSpeed;
         }
         if (e.code == "KeyS") {
-            pitch -= degsPerSecond;
+            cz -= moveSpeed;
         }
         if (e.code == "KeyA") {
-            yaw -= degsPerSecond
+            cx -= moveSpeed;
         }
         if (e.code == "KeyD") {
+            cx += moveSpeed;
+        }
+        cameraLookAt = lookAt([cx, cy, -cz], [0, 0, 0], [0, 1, 0]);
+
+        if (e.code == "ArrowDown") {
+            pitch += degsPerSecond;
+        }
+        if (e.code == "ArrowUp") {
+            pitch -= degsPerSecond;
+        }
+        if (e.code == "ArrowLeft") {
+            yaw -= degsPerSecond
+        }
+        if (e.code == "ArrowRight") {
             yaw += degsPerSecond;
         }
 
@@ -195,12 +213,13 @@ function init() {
         }
     }
 
-    gl = WebGLUtils.setupWebGL(canvas, {stencil: true});
+    gl = WebGLUtils.setupWebGL(canvas, { stencil: true });
 
     if (!gl) { alert("WebGL isn't available"); }
 
     tardisExteriorMaterial = loadMTL(preloader.getText("tardis_exterior.mtl"));
     tardisInteriorMaterial = loadMTL(preloader.getText("tardis_interior.mtl"));
+    tardisInteriorV2Material = loadMTL(preloader.getText("tardis-interior-v2.mtl"));
     defaultMaterial = new Material([0.8, 0.8, 0.8], [0.8, 0.8, 0.8], [1.0, 1.0, 1.0], 50);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -210,7 +229,9 @@ function init() {
     gouraudProgram = initShaders(gl, "gouraud-vertex-shader", "gouraud-fragment-shader");
 
     tardisExterior = new Model(new OBJ(preloader.getText("tardis_exterior.obj"), tardisExteriorMaterial));
+    tardisExteriorStencil = new Model(new OBJ(preloader.getText("tardis_exterior_stencil.obj"), tardisExteriorMaterial));
     tardisInterior = new Model(new OBJ(preloader.getText("tardis_interior.obj"), tardisInteriorMaterial));
+    tardisInteriorV2 = new Model(new OBJ(preloader.getText("tardis-interior-v2.obj"), tardisInteriorV2Material));
 
     window.requestAnimFrame(render);
 };
@@ -258,11 +279,6 @@ function render() {
     var program = gouraud ? gouraudProgram : defaultProgram;
 
     fpsCount++;
-
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.STENCIL_TEST);
-    gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
 
     gl.useProgram(program);
     gl.uniform1f(gl.getUniformLocation(program, "useTexture"), false);
@@ -325,7 +341,7 @@ function render() {
 
     gl.uniform1f(gl.getUniformLocation(program, "blinn"), blinn ? 0.0 : 1.0);
 
-    var transformedView = mult(lookAt, mult(rotateX(pitch), rotateY(yaw)));
+    var transformedView = mult(cameraLookAt, mult(rotateX(pitch), rotateY(yaw)));
     gl.uniformMatrix4fv(gl.getUniformLocation(program, "view"), false, flatten(transformedView));
     gl.uniformMatrix4fv(gl.getUniformLocation(program, "projection"), false, flatten(perspective(60, 1, 0.1, 100.0)));
 
@@ -341,31 +357,42 @@ function render() {
     ctx.fillText("fps: " + cachedFPS + " pitch: " + pitch + " yaw: " + yaw, 10, 24);
     ctx.fillText((smooth ? "smooth" : "flat") + " shading (F), " + (gouraud ? "gouraud (G)" : (blinn ? "blinn-phong (B)" : "phong (B)")), 10, 48);
 
-    gl.enable(gl.CULL_FACE);
-
     defaultMaterial.bind(program);
 
-    var tardisExteriorModel = mult(translate(7, 0, 0), scalem(4, 4, 4));
+    var tardisExteriorModel = mult(translate(0, 0, 0), scalem(1, 1, 1));
+    var tardisInteriorModel = mult(translate(0, -3, 7), mult(scalem(1.5, 1.5, 1.5), rotateY(180)));
 
-    //Draw the inner walls of the tardis walls, setting 1 on the stencil buffer for each fragment drawn
-    tardisExterior.bind(program, false);
-    gl.stencilFunc(gl.ALWAYS, 1, 0xFF);
-    gl.stencilMask(0xFF);
-    gl.cullFace(gl.FRONT);
-    tardisExterior.render(program, tardisExteriorModel);
-
-    //Draw the interior only on the parts where the inner walls were drawn
-    gl.disable(gl.DEPTH_TEST);
-    gl.stencilFunc(gl.NOTEQUAL, 0, 0xFF);
-    gl.stencilMask(0x00);
-    tardisInterior.bind(program, false);
-    tardisInterior.render(program, mult(translate(0, 0, 5), scalem(2, 2, 2)));
-
-    //Draw outer walls, cover unnecessary surfaces
-    gl.clear(gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
-    gl.stencilMask(0x00);    
+    gl.enable(gl.STENCIL_TEST);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+
+    // Draw the inner walls of the tardis walls, setting 1 on the stencil buffer for each fragment drawn
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.FRONT);
+    gl.stencilFunc(gl.ALWAYS, 1, 1);
+    gl.stencilMask(1);
+    tardisExteriorStencil.bind(program, false);
+    tardisExteriorStencil.render(program, tardisExteriorModel);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.disable(gl.CULL_FACE);
+    gl.stencilFunc(gl.NOTEQUAL, 3, 1);
+    gl.stencilMask(2);
+    tardisExteriorStencil.bind(program, false);
+    tardisExteriorStencil.render(program, tardisExteriorModel);
+
+    // Draw the interior only on the parts where the inner walls were drawn
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
+    gl.stencilFunc(gl.EQUAL, 3, 2);
+    tardisInteriorV2.bind(program, false);
+    tardisInteriorV2.render(program, tardisInteriorModel);
+
+    // Draw outer walls, cover unnecessary surfaces
+    gl.stencilFunc(gl.NOTEQUAL, 2, 2);
+    gl.stencilMask(0);
     tardisExterior.bind(program, false);
     tardisExterior.render(program, tardisExteriorModel);
 }
