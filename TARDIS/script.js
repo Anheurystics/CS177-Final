@@ -23,6 +23,11 @@ var tardisExteriorMaterial, tardisInteriorMaterial, defaultMaterial;
 var tardisDoorRightMaterial, tardisDoorLeftMaterial;
 var tardisInteriorV2Material;
 
+var doorOpenAngle = 80;
+var doorCloseAngle = 0;
+var doorAngle = 0;
+var doorDir = 0;
+
 var preloader = new Preloader(init);
 preloader.addText("tardis_exterior.obj");
 preloader.addText("tardis_exterior.mtl");
@@ -176,6 +181,16 @@ class Model {
 function init() {
     var canvas = document.getElementById("gl-canvas");
     ctx = document.getElementById("overlay").getContext("2d");
+    window.onkeyup = function(e) {
+        if(e.code == "KeyT") {
+            if(doorAngle == doorCloseAngle) {
+                doorDir = 1;
+            }
+            if(doorAngle == doorOpenAngle) {
+                doorDir = -1;
+            }
+        }
+    }
     window.onkeydown = function (e) {
         var degsPerSecond = 60 / 60;
         var moveSpeed = 0.5;
@@ -290,6 +305,22 @@ function render() {
         cachedFPS = Math.floor(1 / delta);
     }
 
+    if(doorDir == 1) {
+        doorAngle += delta * 180;
+        if(doorAngle >= doorOpenAngle) {
+            doorAngle = doorOpenAngle;
+            doorDir = 0;
+        }
+    }
+
+    if(doorDir == -1) {
+        doorAngle -= delta * 180;
+        if(doorAngle <= doorCloseAngle) {
+            doorAngle = doorCloseAngle;
+            doorDir = 0;
+        }
+    }
+
     var program = gouraud ? gouraudProgram : defaultProgram;
 
     fpsCount++;
@@ -336,8 +367,8 @@ function render() {
     var tardisExteriorModel = mult(translate(0, 0, 0), mult(scalem(1, 1, 1), rotateY(0)));
     var tardisInteriorModel = mult(translate(0, -3, 7), mult(scalem(1.5, 1.5, 1.5), rotateY(180)));
 
-    var tardisDoorRightModel = mult(translate(0.75, 0.15, -1), rotateY(-45));
-    var tardisDoorLeftModel = mult(translate(-0.75, 0.15, -1), rotateY(45));
+    var tardisDoorRightModel = mult(translate(0.75, 0.15, -1), rotateY(-doorAngle));
+    var tardisDoorLeftModel = mult(translate(-0.75, 0.15, -1), rotateY(doorAngle));
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
