@@ -304,6 +304,10 @@ function rgbf(r, g, b) {
     return [r / 255.0, g / 255.0, b / 255.0];
 }
 
+function isInsideTardis() {
+    return false;
+}
+
 function render() {
     window.requestAnimFrame(render);
 
@@ -370,6 +374,7 @@ function render() {
     ctx.font = "16pt monospace";
     ctx.fillText("fps: " + cachedFPS + " pitch: " + pitch + " yaw: " + yaw, 10, 24);
     ctx.fillText((smooth ? "smooth" : "flat") + " shading (F), " + (gouraud ? "gouraud (G)" : (blinn ? "blinn-phong (B)" : "phong (B)")), 10, 48);
+    ctx.fillText("Inside TARDIS? " + isInsideTardis(), 10, 72);
 
     defaultMaterial.bind(program);
 
