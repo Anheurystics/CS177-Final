@@ -31,6 +31,7 @@ var doorDir = 0;
 
 var preloader = new Preloader(init);
 preloader.addImage("police.png");
+preloader.addImage("stjohn.png");
 preloader.addText("tardiscube.obj");
 preloader.addText("tardiscube.mtl");
 preloader.addText("tardis_exterior.obj");
@@ -107,8 +108,8 @@ class Material {
             this.texture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, preloader.getImage(this.map_Kd));
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
             gl.generateMipmap(gl.TEXTURE_2D);
             gl.bindTexture(gl.TEXTURE_2D, null);
         }
