@@ -24,7 +24,7 @@ var tardisExteriorMaterial, tardisInteriorMaterial, defaultMaterial;
 var tardisDoorRightMaterial, tardisDoorLeftMaterial;
 var tardisInteriorV2Material;
 
-var doorOpenAngle = 80;
+var doorOpenAngle = 75;
 var doorCloseAngle = 0;
 var doorAngle = 0;
 var doorDir = 0;
