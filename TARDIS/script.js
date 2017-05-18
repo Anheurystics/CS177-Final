@@ -5,8 +5,8 @@ var gl, ctx,
     usePerspective = false,
     matrixStack = [],
     modelOutlines = false,
-    cx = 0, cy = 2, cz = -8,
-    cameraLookAt = lookAt([cx, cy, -cz], [0, cy, 0], [0, 1, 0]);
+    cx = 0, cy = 2, cz = 8,
+    cameraLookAt = lookAt([cx, cy, cz], [cx, cy, cz - 1], [0, 1, 0]);
 
 var tardisExterior, tardisExteriorStencil, tardisInterior, tardisInteriorV2, tardisDoorLeft, tardisDoorRight;
 var tardisCube;
@@ -214,7 +214,7 @@ function init() {
         if (e.code == "KeyD") {
             cx += moveSpeed;
         }
-        cameraLookAt = lookAt([cx, cy, -cz], [0, cy, 0], [0, 1, 0]);
+    cameraLookAt = lookAt([cx, cy, cz], [cx, cy, cz - 1], [0, 1, 0]);
 
         if (e.code == "ArrowDown") {
             pitch += degsPerSecond;
@@ -305,7 +305,13 @@ function rgbf(r, g, b) {
 }
 
 function isInsideTardis() {
-    return false;
+    if(cx > 0.5 || cx < -0.5) {
+        return false;
+    }
+    if(cz > -1.5 || cz < -2.5) {
+        return false;
+    }
+    return true;
 }
 
 function render() {
@@ -381,8 +387,8 @@ function render() {
     var tardisExteriorModel = mult(translate(0, 0, 0), mult(scalem(1, 1, 1), rotateY(0)));
     var tardisInteriorModel = mult(translate(0, -3, 7), mult(scalem(1.5, 1.5, 1.5), rotateY(180)));
 
-    var tardisDoorRightModel = mult(translate(0.75, 0.15, -1), rotateY(-doorAngle));
-    var tardisDoorLeftModel = mult(translate(-0.75, 0.15, -1), rotateY(doorAngle));
+    var tardisDoorRightModel = mult(translate(0.75, 0, -1), rotateY(-doorAngle));
+    var tardisDoorLeftModel = mult(translate(-0.75, 0, -1), rotateY(doorAngle));
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
