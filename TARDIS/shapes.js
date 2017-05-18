@@ -180,19 +180,19 @@ class OBJ extends Shape {
             var line = lines[i];
             var split = line.split(" ");
             if (split[0] == "usemtl") {
-                if(split[1] == "None") {
+                if (split[1] == "None") {
                     continue;
                 }
 
-                if(currentMaterial != undefined) {
+                if (currentMaterial != undefined) {
                     currentRange.end = this.vertices.length;
                 }
 
-                if(this.materialGroups[split[1]] == undefined) {
+                if (this.materialGroups[split[1]] == undefined) {
                     this.materialGroups[split[1]] = [];
                 }
 
-                currentRange = {start: 0, end: 0};
+                currentRange = { start: 0, end: 0 };
                 this.materialGroups[split[1]].push(currentRange);
                 currentRange.start = this.vertices.length;
                 currentMaterial = split[1];
@@ -223,20 +223,24 @@ class OBJ extends Shape {
                 this.addTriangle(positionList, normalList, uvList);
             }
         }
-        if(currentMaterial) {
-            this.materialGroups[currentMaterial][Object.keys(this.materialGroups).length - 1].end = this.vertices.length - 1;
+        if (currentMaterial) {
+            this.materialGroups[currentMaterial][Object.keys(this.materialGroups[currentMaterial]).length - 1].end = this.vertices.length - 1;
         }
     }
 
     render(program, outlines = false) {
         if (Object.keys(this.materialGroups).length == 0) {
+            gl.uniform3f(gl.getUniformLocation(program, "Ka"), 0.8, 0.8, 0.8);
+            gl.uniform3f(gl.getUniformLocation(program, "Kd"), 0.8, 0.8, 0.8);
+            gl.uniform3f(gl.getUniformLocation(program, "Ks"), 1.0, 1.0, 1.0);
+            gl.uniform1f(gl.getUniformLocation(program, "Ns"), 50.0);
             super.render(program, outlines);
         } else {
             gl.uniform3f(gl.getUniformLocation(program, "color"), 0.4, 0.4, 0.4);
-            for(var key in this.materialGroups) {
+            for (var key in this.materialGroups) {
                 var group = this.materialGroups[key];
                 this.material[key].bind(program);
-                for(var i in group) {
+                for (var i in group) {
                     var range = group[i];
                     gl.drawArrays(gl.TRIANGLES, range.start, range.end - range.start + 1);
                 }

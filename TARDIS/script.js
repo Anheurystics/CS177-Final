@@ -5,10 +5,10 @@ var gl, ctx,
     usePerspective = false,
     matrixStack = [],
     modelOutlines = false,
-    cx = 0, cy = 0, cz = -8,
-    cameraLookAt = lookAt([cx, cy, -cz], [0, 0, 0], [0, 1, 0]);
+    cx = 0, cy = 2, cz = -8,
+    cameraLookAt = lookAt([cx, cy, -cz], [0, cy, 0], [0, 1, 0]);
 
-var tardisExterior, tardisExteriorStencil, tardisInterior, tardisInteriorV2;
+var tardisExterior, tardisExteriorStencil, tardisInterior, tardisInteriorV2, tardisDoorLeft, tardisDoorRight;
 
 var pitch = 0;
 var yaw = 180;
@@ -20,14 +20,20 @@ var gouraud = false;
 var blinn = true;
 var lightEnabled = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
 var tardisExteriorMaterial, tardisInteriorMaterial, defaultMaterial;
+var tardisDoorRightMaterial, tardisDoorLeftMaterial;
 var tardisInteriorV2Material;
 
 var preloader = new Preloader(init);
 preloader.addText("tardis_exterior.obj");
 preloader.addText("tardis_exterior.mtl");
 preloader.addText("tardis_exterior_stencil.obj");
+preloader.addText("tardis_exterior_stencil.mtl");
 preloader.addText("tardis_interior.obj");
 preloader.addText("tardis_interior.mtl");
+preloader.addText("tardis_door_left.obj");
+preloader.addText("tardis_door_left.mtl");
+preloader.addText("tardis_door_right.obj");
+preloader.addText("tardis_door_right.mtl");
 preloader.addText("tardis-interior-v2.obj");
 preloader.addText("tardis-interior-v2.mtl");
 preloader.preload();
@@ -95,6 +101,7 @@ class Material {
         gl.uniform3fv(gl.getUniformLocation(program, "Kd"), this.Kd);
         gl.uniform3fv(gl.getUniformLocation(program, "Ks"), this.Ks);
         gl.uniform1f(gl.getUniformLocation(program, "Ns"), this.Ns);
+
         gl.uniform1f(gl.getUniformLocation(program, "useTexture"), this.texture != undefined);
         if (this.texture != undefined) {
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -175,7 +182,7 @@ function init() {
         if (e.code == "KeyD") {
             cx += moveSpeed;
         }
-        cameraLookAt = lookAt([cx, cy, -cz], [0, 0, 0], [0, 1, 0]);
+        cameraLookAt = lookAt([cx, cy, -cz], [0, cy, 0], [0, 1, 0]);
 
         if (e.code == "ArrowDown") {
             pitch += degsPerSecond;
@@ -218,8 +225,11 @@ function init() {
     if (!gl) { alert("WebGL isn't available"); }
 
     tardisExteriorMaterial = loadMTL(preloader.getText("tardis_exterior.mtl"));
+    tardisExteriorStencilMaterial = loadMTL(preloader.getText("tardis_exterior_stencil.mtl"));
     tardisInteriorMaterial = loadMTL(preloader.getText("tardis_interior.mtl"));
     tardisInteriorV2Material = loadMTL(preloader.getText("tardis-interior-v2.mtl"));
+    tardisDoorLeftMaterial = loadMTL(preloader.getText("tardis_door_left.mtl"));
+    tardisDoorRightMaterial = loadMTL(preloader.getText("tardis_door_right.mtl"));
     defaultMaterial = new Material([0.8, 0.8, 0.8], [0.8, 0.8, 0.8], [1.0, 1.0, 1.0], 50);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -229,9 +239,11 @@ function init() {
     gouraudProgram = initShaders(gl, "gouraud-vertex-shader", "gouraud-fragment-shader");
 
     tardisExterior = new Model(new OBJ(preloader.getText("tardis_exterior.obj"), tardisExteriorMaterial));
-    tardisExteriorStencil = new Model(new OBJ(preloader.getText("tardis_exterior_stencil.obj"), tardisExteriorMaterial));
+    tardisExteriorStencil = new Model(new OBJ(preloader.getText("tardis_exterior_stencil.obj"), tardisExteriorStencilMaterial));
     tardisInterior = new Model(new OBJ(preloader.getText("tardis_interior.obj"), tardisInteriorMaterial));
     tardisInteriorV2 = new Model(new OBJ(preloader.getText("tardis-interior-v2.obj"), tardisInteriorV2Material));
+    tardisDoorLeft = new Model(new OBJ(preloader.getText("tardis_door_left.obj"), tardisDoorLeftMaterial));
+    tardisDoorRight = new Model(new OBJ(preloader.getText("tardis_door_right.obj"), tardisDoorRightMaterial));
 
     window.requestAnimFrame(render);
 };
@@ -283,61 +295,22 @@ function render() {
     gl.useProgram(program);
     gl.uniform1f(gl.getUniformLocation(program, "useTexture"), false);
 
-    gl.uniform1f(gl.getUniformLocation(program, "lights[0].enabled"), lightEnabled[0]);
-    gl.uniform4f(gl.getUniformLocation(program, "lights[0].position"), 0, 5.5, -5.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[0].color"), 1.0, 1.0, 0.7);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[0].enabled"), true);
+    gl.uniform4f(gl.getUniformLocation(program, "lights[0].position"), -2.0, 2.0, 0.0, 0.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[0].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[0].attenuation"), 3.0, 0.1, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[0].intensity"), 0.4);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[0].direction"), 0.0, -1.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[0].angle"), 50.0);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[0].intensity"), 5.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[0].direction"), 0.0, 0.0, 0.0);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[0].angle"), 0.0);
 
-    gl.uniform1f(gl.getUniformLocation(program, "lights[1].enabled"), lightEnabled[1]);
-    gl.uniform4f(gl.getUniformLocation(program, "lights[1].position"), 2.5, 5.5, -5.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[1].color"), 1.0, 1.0, 0.7);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[1].enabled"), true);
+    gl.uniform4f(gl.getUniformLocation(program, "lights[1].position"), 2.0, 2.0, 0.0, 0.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[1].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[1].attenuation"), 3.0, 0.1, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[1].intensity"), 0.4);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[1].direction"), 0.0, -1.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[1].angle"), 50.0);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[1].intensity"), 5.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[1].direction"), 0.0, 0.0, 0.0);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[1].angle"), 0.0);
 
-    gl.uniform1f(gl.getUniformLocation(program, "lights[2].enabled"), lightEnabled[2]);
-    gl.uniform4f(gl.getUniformLocation(program, "lights[2].position"), -2.5, 5.5, -5.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[2].color"), 1.0, 1.0, 0.7);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[2].attenuation"), 3.0, 0.1, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[2].intensity"), 0.4);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[2].direction"), 0.0, -1.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[2].angle"), 50.0);
-
-    gl.uniform1f(gl.getUniformLocation(program, "lights[3].enabled"), lightEnabled[3]);
-    gl.uniform4f(gl.getUniformLocation(program, "lights[3].position"), 0, 5.5, 5.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[3].color"), 1.0, 1.0, 0.7);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[3].attenuation"), 3.0, 0.1, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[3].intensity"), 0.4);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[3].direction"), 0.0, -1.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[3].angle"), 50.0);
-
-    gl.uniform1f(gl.getUniformLocation(program, "lights[4].enabled"), lightEnabled[4]);
-    gl.uniform4f(gl.getUniformLocation(program, "lights[4].position"), 2.5, 5.5, 5.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[4].color"), 1.0, 1.0, 0.7);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[4].attenuation"), 3.0, 0.1, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[4].intensity"), 0.4);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[4].direction"), 0.0, -1.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[4].angle"), 50.0);
-
-    gl.uniform1f(gl.getUniformLocation(program, "lights[5].enabled"), lightEnabled[5]);
-    gl.uniform4f(gl.getUniformLocation(program, "lights[5].position"), -2.5, 5.5, 5.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[5].color"), 1.0, 1.0, 0.7);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[5].attenuation"), 3.0, 0.1, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[5].intensity"), 0.4);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[5].direction"), 0.0, -1.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[5].angle"), 50.0);
-
-    gl.uniform1f(gl.getUniformLocation(program, "lights[6].enabled"), lightEnabled[6]);
-    gl.uniform4f(gl.getUniformLocation(program, "lights[6].position"), 5.0, 5.0, 0.0, 0.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[6].color"), 1.0, 1.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[6].attenuation"), 3.0, 0.1, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[6].intensity"), 0.4);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[6].direction"), 0.0, -1.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[6].angle"), 50.0);
 
     gl.uniform1f(gl.getUniformLocation(program, "blinn"), blinn ? 0.0 : 1.0);
 
@@ -359,23 +332,29 @@ function render() {
 
     defaultMaterial.bind(program);
 
-    var tardisExteriorModel = mult(translate(0, 0, 0), scalem(1, 1, 1));
+    var tardisExteriorModel = mult(translate(0, 0, 0), mult(scalem(1, 1, 1), rotateY(0)));
     var tardisInteriorModel = mult(translate(0, -3, 7), mult(scalem(1.5, 1.5, 1.5), rotateY(180)));
+
+    var tardisDoorRightModel = mult(translate(0.75, 0.15, -1), rotateY(-45));
+    var tardisDoorLeftModel = mult(translate(-0.75, 0.15, -1), rotateY(45));
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.STENCIL_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
 
     // Draw the inner walls of the tardis walls, setting 1 on the stencil buffer for each fragment drawn
+    // Only draw the parts of the inner walls not occluded by the outer walls
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.FRONT);
     gl.stencilFunc(gl.ALWAYS, 1, 1);
     gl.stencilMask(1);
     tardisExteriorStencil.bind(program, false);
     tardisExteriorStencil.render(program, tardisExteriorModel);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    // Draw inner walls where stencil bit #1 is not 1, set stencil bit #2 to 1
     gl.disable(gl.CULL_FACE);
     gl.stencilFunc(gl.NOTEQUAL, 3, 1);
     gl.stencilMask(2);
@@ -395,4 +374,10 @@ function render() {
     gl.stencilMask(0);
     tardisExterior.bind(program, false);
     tardisExterior.render(program, tardisExteriorModel);
+
+    gl.disable(gl.STENCIL_TEST);
+    tardisDoorLeft.bind(program, false);
+    tardisDoorLeft.render(program, mult(tardisExteriorModel, tardisDoorRightModel));
+    tardisDoorRight.bind(program, false);
+    tardisDoorRight.render(program, mult(tardisExteriorModel, tardisDoorLeftModel));
 }

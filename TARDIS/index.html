@@ -99,7 +99,7 @@ vec3 calculateLight(Light light, vec3 camera, vec3 surface, vec3 normal) {
 
 void main()
 {
-    vec3 totalLight = Ka * Color;
+    vec3 totalLight = Kd;
 
     if(useTexture) {
         totalLight *= texture2D(tex, UV).rgb;
