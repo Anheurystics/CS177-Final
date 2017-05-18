@@ -230,8 +230,8 @@ class OBJ extends Shape {
 
     render(program, outlines = false) {
         if (Object.keys(this.materialGroups).length == 0) {
-            gl.uniform3f(gl.getUniformLocation(program, "Ka"), 0.8, 0.8, 0.8);
-            gl.uniform3f(gl.getUniformLocation(program, "Kd"), 0.8, 0.8, 0.8);
+            gl.uniform3f(gl.getUniformLocation(program, "Ka"), 0.3, 0.3, 0.3);
+            gl.uniform3f(gl.getUniformLocation(program, "Kd"), 0.3, 0.3, 0.3);
             gl.uniform3f(gl.getUniformLocation(program, "Ks"), 1.0, 1.0, 1.0);
             gl.uniform1f(gl.getUniformLocation(program, "Ns"), 50.0);
             super.render(program, outlines);
