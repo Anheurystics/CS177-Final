@@ -9,6 +9,7 @@ var gl, ctx,
     cameraLookAt = lookAt([cx, cy, -cz], [0, cy, 0], [0, 1, 0]);
 
 var tardisExterior, tardisExteriorStencil, tardisInterior, tardisInteriorV2, tardisDoorLeft, tardisDoorRight;
+var tardisCube;
 
 var pitch = 0;
 var yaw = 180;
@@ -29,6 +30,9 @@ var doorAngle = 0;
 var doorDir = 0;
 
 var preloader = new Preloader(init);
+preloader.addImage("police.png");
+preloader.addText("tardiscube.obj");
+preloader.addText("tardiscube.mtl");
 preloader.addText("tardis_exterior.obj");
 preloader.addText("tardis_exterior.mtl");
 preloader.addText("tardis_exterior_stencil.obj");
@@ -118,7 +122,10 @@ class Material {
 
         gl.uniform1f(gl.getUniformLocation(program, "useTexture"), this.texture != undefined);
         if (this.texture != undefined) {
+            gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
+        } else {
+            gl.bindTexture(gl.TEXTURE_2D, null);
         }
     }
 }
@@ -261,6 +268,7 @@ function init() {
     tardisInteriorV2 = loadModelWithMaterial("tardis-interior-v2").model;
     tardisDoorLeft = loadModelWithMaterial("tardis_door_left").model;
     tardisDoorRight = loadModelWithMaterial("tardis_door_right").model;
+    tardisCube = loadModelWithMaterial("tardiscube").model;
 
     window.requestAnimFrame(render);
 };
