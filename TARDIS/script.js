@@ -75,6 +75,15 @@ function loadMTL(mtlSource) {
     return materials;
 }
 
+function loadModelWithMaterial(name) {
+    var m = loadMTL(preloader.getText(name + ".mtl"));
+
+    return {
+        material: m,
+        model: new Model(new OBJ(preloader.getText(name + ".obj"), m))
+    }
+}
+
 class Material {
     constructor(Ka, Kd, Ks, Ns, map_Kd) {
         this.Ka = Ka;
@@ -224,12 +233,6 @@ function init() {
 
     if (!gl) { alert("WebGL isn't available"); }
 
-    tardisExteriorMaterial = loadMTL(preloader.getText("tardis_exterior.mtl"));
-    tardisExteriorStencilMaterial = loadMTL(preloader.getText("tardis_exterior_stencil.mtl"));
-    tardisInteriorMaterial = loadMTL(preloader.getText("tardis_interior.mtl"));
-    tardisInteriorV2Material = loadMTL(preloader.getText("tardis-interior-v2.mtl"));
-    tardisDoorLeftMaterial = loadMTL(preloader.getText("tardis_door_left.mtl"));
-    tardisDoorRightMaterial = loadMTL(preloader.getText("tardis_door_right.mtl"));
     defaultMaterial = new Material([0.8, 0.8, 0.8], [0.8, 0.8, 0.8], [1.0, 1.0, 1.0], 50);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
@@ -238,12 +241,11 @@ function init() {
     defaultProgram = initShaders(gl, "vertex-shader", "fragment-shader");
     gouraudProgram = initShaders(gl, "gouraud-vertex-shader", "gouraud-fragment-shader");
 
-    tardisExterior = new Model(new OBJ(preloader.getText("tardis_exterior.obj"), tardisExteriorMaterial));
-    tardisExteriorStencil = new Model(new OBJ(preloader.getText("tardis_exterior_stencil.obj"), tardisExteriorStencilMaterial));
-    tardisInterior = new Model(new OBJ(preloader.getText("tardis_interior.obj"), tardisInteriorMaterial));
-    tardisInteriorV2 = new Model(new OBJ(preloader.getText("tardis-interior-v2.obj"), tardisInteriorV2Material));
-    tardisDoorLeft = new Model(new OBJ(preloader.getText("tardis_door_left.obj"), tardisDoorLeftMaterial));
-    tardisDoorRight = new Model(new OBJ(preloader.getText("tardis_door_right.obj"), tardisDoorRightMaterial));
+    tardisExterior = loadModelWithMaterial("tardis_exterior").model;
+    tardisExteriorStencil = loadModelWithMaterial("tardis_exterior_stencil").model;
+    tardisInteriorV2 = loadModelWithMaterial("tardis-interior-v2").model;
+    tardisDoorLeft = loadModelWithMaterial("tardis_door_left").model;
+    tardisDoorRight = loadModelWithMaterial("tardis_door_right").model;
 
     window.requestAnimFrame(render);
 };
@@ -310,7 +312,6 @@ function render() {
     gl.uniform1f(gl.getUniformLocation(program, "lights[1].intensity"), 5.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[1].direction"), 0.0, 0.0, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[1].angle"), 0.0);
-
 
     gl.uniform1f(gl.getUniformLocation(program, "blinn"), blinn ? 0.0 : 1.0);
 
