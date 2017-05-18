@@ -9,7 +9,6 @@ var gl, ctx,
     cameraLookAt = lookAt([cx, cy, cz], [cx, cy, cz - 1], [0, 1, 0]);
 
 var tardisExterior, tardisExteriorStencil, tardisInterior, tardisInteriorV2, tardisDoorLeft, tardisDoorRight;
-var tardisCube;
 
 var pitch = 0;
 var yaw = 180;
@@ -32,8 +31,6 @@ var doorDir = 0;
 var preloader = new Preloader(init);
 preloader.addImage("police.png");
 preloader.addImage("stjohn.png");
-preloader.addText("tardiscube.obj");
-preloader.addText("tardiscube.mtl");
 preloader.addText("tardis_exterior.obj");
 preloader.addText("tardis_exterior.mtl");
 preloader.addText("tardis_exterior_stencil.obj");
@@ -107,7 +104,7 @@ class Material {
         if (this.map_Kd != undefined) {
             this.texture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, preloader.getImage(this.map_Kd));
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, preloader.getImage(this.map_Kd.trim()));
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
             gl.generateMipmap(gl.TEXTURE_2D);
@@ -120,7 +117,6 @@ class Material {
         gl.uniform3fv(gl.getUniformLocation(program, "Kd"), this.Kd);
         gl.uniform3fv(gl.getUniformLocation(program, "Ks"), this.Ks);
         gl.uniform1f(gl.getUniformLocation(program, "Ns"), this.Ns);
-
         gl.uniform1f(gl.getUniformLocation(program, "useTexture"), this.texture != undefined);
         if (this.texture != undefined) {
             gl.activeTexture(gl.TEXTURE0);
@@ -269,7 +265,6 @@ function init() {
     tardisInteriorV2 = loadModelWithMaterial("tardis-interior-v2").model;
     tardisDoorLeft = loadModelWithMaterial("tardis_door_left").model;
     tardisDoorRight = loadModelWithMaterial("tardis_door_right").model;
-    tardisCube = loadModelWithMaterial("tardiscube").model;
 
     window.requestAnimFrame(render);
 };
