@@ -35,8 +35,6 @@ preloader.addText("tardis_exterior.obj");
 preloader.addText("tardis_exterior.mtl");
 preloader.addText("tardis_exterior_stencil.obj");
 preloader.addText("tardis_exterior_stencil.mtl");
-preloader.addText("tardis_interior.obj");
-preloader.addText("tardis_interior.mtl");
 preloader.addText("tardis_door_left.obj");
 preloader.addText("tardis_door_left.mtl");
 preloader.addText("tardis_door_right.obj");
