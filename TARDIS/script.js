@@ -307,6 +307,9 @@ function isInsideTardis() {
     return true;
 }
 
+var insideTrigger = false;
+var insideTardis = false;
+
 function render() {
     window.requestAnimFrame(render);
 
@@ -383,6 +386,19 @@ function render() {
     var tardisDoorRightModel = mult(translate(0.75, 0, -1), rotateY(-doorAngle));
     var tardisDoorLeftModel = mult(translate(-0.75, 0, -1), rotateY(doorAngle));
 
+    if(Math.abs(cz + 1) < 0.05) {
+        insideTrigger = true;
+    } else {
+        if(insideTrigger) {
+            insideTrigger = false;
+            if(-1 - cz <= 0) {
+                insideTardis = true;
+            } else {
+                insideTardis = false;
+            }
+        }
+    }
+
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.STENCIL_TEST);
@@ -390,39 +406,43 @@ function render() {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
 
-    // Draw the inner walls of the tardis walls, setting 1 on the stencil buffer for each fragment drawn
-    // Only draw the parts of the inner walls not occluded by the outer walls
-    gl.enable(gl.CULL_FACE);
-    gl.cullFace(gl.FRONT);
-    gl.stencilFunc(gl.ALWAYS, 1, 1);
-    gl.stencilMask(1);
-    tardisExteriorStencil.bind(program, false);
-    tardisExteriorStencil.render(program, tardisExteriorModel);
+    if(!insideTardis) {
+        // Draw the inner walls of the tardis walls, setting 1 on the stencil buffer for each fragment drawn
+        // Only draw the parts of the inner walls not occluded by the outer walls
+        gl.enable(gl.CULL_FACE);
+        gl.cullFace(gl.FRONT);
+        gl.stencilFunc(gl.ALWAYS, 1, 1);
+        gl.stencilMask(1);
+        tardisExteriorStencil.bind(program, false);
+        tardisExteriorStencil.render(program, tardisExteriorModel);
 
-    // Draw inner walls where stencil bit #1 is not 1, set stencil bit #2 to 1
-    gl.disable(gl.CULL_FACE);
-    gl.stencilFunc(gl.NOTEQUAL, 3, 1);
-    gl.stencilMask(2);
-    tardisExteriorStencil.bind(program, false);
-    tardisExteriorStencil.render(program, tardisExteriorModel);
+        // Draw inner walls where stencil bit #1 is not 1, set stencil bit #2 to 1
+        gl.disable(gl.CULL_FACE);
+        gl.stencilFunc(gl.NOTEQUAL, 3, 1);
+        gl.stencilMask(2);
+        tardisExteriorStencil.bind(program, false);
+        tardisExteriorStencil.render(program, tardisExteriorModel);
+    }
 
     // Draw the interior only on the parts where the inner walls were drawn
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
-    gl.stencilFunc(gl.EQUAL, 3, 2);
+    !insideTardis && gl.stencilFunc(gl.EQUAL, 3, 2);
     tardisInteriorV2.bind(program, false);
     tardisInteriorV2.render(program, tardisInteriorModel);
 
-    // Draw outer walls, cover unnecessary surfaces
-    gl.stencilFunc(gl.NOTEQUAL, 2, 2);
-    gl.stencilMask(0);
-    tardisExterior.bind(program, false);
-    tardisExterior.render(program, tardisExteriorModel);
+    if(!insideTardis) {
+        // Draw outer walls, cover unnecessary surfaces
+        gl.stencilFunc(gl.NOTEQUAL, 2, 2);
+        gl.stencilMask(0);
+        tardisExterior.bind(program, false);
+        tardisExterior.render(program, tardisExteriorModel);
 
-    gl.disable(gl.STENCIL_TEST);
-    tardisDoorLeft.bind(program, false);
-    tardisDoorLeft.render(program, mult(tardisExteriorModel, tardisDoorRightModel));
-    tardisDoorRight.bind(program, false);
-    tardisDoorRight.render(program, mult(tardisExteriorModel, tardisDoorLeftModel));
+        gl.disable(gl.STENCIL_TEST);
+        tardisDoorLeft.bind(program, false);
+        tardisDoorLeft.render(program, mult(tardisExteriorModel, tardisDoorRightModel));
+        tardisDoorRight.bind(program, false);
+        tardisDoorRight.render(program, mult(tardisExteriorModel, tardisDoorLeftModel));
+    }
 }
