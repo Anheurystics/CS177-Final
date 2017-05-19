@@ -244,8 +244,26 @@ function init() {
             if(dist >= 7.5) {
                 var angle = Math.atan2(dx, dz);
                 
+                console.log(angle);
+
                 cz = centerZ + Math.cos(angle) * 7.5;
                 cx = centerX + Math.sin(angle) * 7.5;
+            }
+        } else {
+            if(Math.abs(cz) < Math.abs(cx)) {
+                if(cx > 0 && cx < 1.5) {
+                    cx = 1.5;
+                }
+                if(cx < 0 && cx > -1.5) {
+                    cx = -1.5;
+                }
+            } else {
+                if(cz > 0 && cz < 1.5) {
+                    cz = 1.5;
+                }
+                if(doorAngle == 0 && cz < 0 && cz > -1.5) {
+                    cz = -1.5;
+                }
             }
         }
 
@@ -415,12 +433,12 @@ function render() {
     var tardisDoorRightModel = mult(translate(0.75, 0, -1), rotateY(-doorAngle));
     var tardisDoorLeftModel = mult(translate(-0.75, 0, -1), rotateY(doorAngle));
 
-    if (Math.abs(cz + 0.0) < 0.05 && Math.abs(cx) <= 0.5) {
+    if (Math.abs(cz + 1) < 0.05 && Math.abs(cx) <= 0.5) {
         insideTrigger = true;
     } else {
         if (insideTrigger) {
             insideTrigger = false;
-            if (cz > -0.0) {
+            if (cz > -1.0) {
                 insideTardis = true;
             } else {
                 insideTardis = false;
