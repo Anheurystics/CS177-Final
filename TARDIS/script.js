@@ -15,7 +15,7 @@ function getCamera() {
 
 var cameraLookAt = getCamera();
 
-var tardisExterior, tardisExteriorStencil, tardisInterior, tardisPanel, tardisInteriorV2, tardisDoorLeft, tardisDoorRight, tardisPanel;
+var tardisExterior, tardisExteriorStencil, tardisInterior, tardisPanel, tardisInterior, tardisDoorLeft, tardisDoorRight, tardisPanel;
 
 var lastUpdate = 0;
 var cachedFPS = 0;
@@ -45,8 +45,6 @@ preloader.addText("tardis_door_left.obj");
 preloader.addText("tardis_door_left.mtl");
 preloader.addText("tardis_door_right.obj");
 preloader.addText("tardis_door_right.mtl");
-preloader.addText("tardis-interior-v2.obj");
-preloader.addText("tardis-interior-v2.mtl");
 preloader.addText("tardis-interior-v3.obj");
 preloader.addText("tardis-interior-v3.mtl");
 preloader.addText("tardis_panel.obj");
@@ -287,7 +285,7 @@ function init() {
 
     tardisExterior = loadModelWithMaterial("tardis_exterior").model;
     tardisExteriorStencil = loadModelWithMaterial("tardis_exterior_stencil").model;
-    tardisInteriorV2 = loadModelWithMaterial("tardis-interior-v3").model;
+    tardisInterior = loadModelWithMaterial("tardis-interior-v3").model;
     tardisDoorLeft = loadModelWithMaterial("tardis_door_left").model;
     tardisDoorRight = loadModelWithMaterial("tardis_door_right").model;
     tardisPanel = loadModelWithMaterial("tardis_panel").model;
@@ -458,8 +456,8 @@ function render() {
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
         !insideTardis && gl.stencilFunc(gl.EQUAL, 3, 2);
-        tardisInteriorV2.bind(program, smooth);
-        tardisInteriorV2.render(program, tardisInteriorModel);
+        tardisInterior.bind(program, smooth);
+        tardisInterior.render(program, tardisInteriorModel);
 
         tardisPanel.bind(program, smooth);
         tardisPanel.render(program, tardisPanelModel);
