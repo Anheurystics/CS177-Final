@@ -5,13 +5,18 @@ var gl, ctx,
     usePerspective = false,
     matrixStack = [],
     modelOutlines = false,
-    cx = 0, cy = 2, cz = 8,
-    cameraLookAt = lookAt([cx, cy, cz], [cx, cy, cz - 1], [0, 1, 0]);
+    cx = 0, cy = 2, cz = -8;
+
+var pitch = 0;
+var yaw = 0;
+function getCamera() {
+    return lookAt([cx, cy, cz], [cx + Math.sin(Math.PI / 180 * yaw), cy, cz + Math.cos(Math.PI / 180 * yaw)], [0, 1, 0]);
+}
+
+var cameraLookAt = getCamera();
 
 var tardisExterior, tardisExteriorStencil, tardisInterior, tardisInteriorV2, tardisDoorLeft, tardisDoorRight;
 
-var pitch = 0;
-var yaw = 180;
 var lastUpdate = 0;
 var cachedFPS = 0;
 var fpsCount = 0;
@@ -41,6 +46,8 @@ preloader.addText("tardis_door_right.obj");
 preloader.addText("tardis_door_right.mtl");
 preloader.addText("tardis-interior-v2.obj");
 preloader.addText("tardis-interior-v2.mtl");
+preloader.addText("tardis-interior-v3.obj");
+preloader.addText("tardis-interior-v3.mtl");
 preloader.preload();
 
 function loadMTL(mtlSource) {
@@ -183,32 +190,35 @@ class Model {
 function init() {
     var canvas = document.getElementById("gl-canvas");
     ctx = document.getElementById("overlay").getContext("2d");
-    window.onkeyup = function(e) {
-        if(e.code == "KeyT") {
-            if(doorAngle == doorCloseAngle) {
+    window.onkeyup = function (e) {
+        if (e.code == "KeyT") {
+            if (doorAngle == doorCloseAngle) {
                 doorDir = 1;
             }
-            if(doorAngle == doorOpenAngle) {
+            if (doorAngle == doorOpenAngle) {
                 doorDir = -1;
             }
         }
     }
     window.onkeydown = function (e) {
-        var degsPerSecond = 60 / 60;
+        var degsPerSecond = 180 / 60;
         var moveSpeed = 0.5;
         if (e.code == "KeyW") {
-            cz += moveSpeed;
+            cz += moveSpeed * Math.cos(Math.PI / 180 * yaw);
+            cx += moveSpeed * Math.sin(Math.PI / 180 * yaw);
         }
         if (e.code == "KeyS") {
-            cz -= moveSpeed;
+            cz -= moveSpeed * Math.cos(Math.PI / 180 * yaw);
+            cx -= moveSpeed * Math.sin(Math.PI / 180 * yaw);
         }
         if (e.code == "KeyA") {
-            cx -= moveSpeed;
+            cz += moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
+            cx += moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
         }
         if (e.code == "KeyD") {
-            cx += moveSpeed;
-        }
-    cameraLookAt = lookAt([cx, cy, cz], [cx, cy, cz - 1], [0, 1, 0]);
+            cz -= moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
+            cx -= moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
+        }       
 
         if (e.code == "ArrowDown") {
             pitch += degsPerSecond;
@@ -217,11 +227,13 @@ function init() {
             pitch -= degsPerSecond;
         }
         if (e.code == "ArrowLeft") {
-            yaw -= degsPerSecond
+            yaw += degsPerSecond
         }
         if (e.code == "ArrowRight") {
-            yaw += degsPerSecond;
+            yaw -= degsPerSecond;
         }
+
+        cameraLookAt = getCamera();
 
         if (e.code == "KeyO") {
             modelOutlines = !modelOutlines;
@@ -260,7 +272,7 @@ function init() {
 
     tardisExterior = loadModelWithMaterial("tardis_exterior").model;
     tardisExteriorStencil = loadModelWithMaterial("tardis_exterior_stencil").model;
-    tardisInteriorV2 = loadModelWithMaterial("tardis-interior-v2").model;
+    tardisInteriorV2 = loadModelWithMaterial("tardis-interior-v3").model;
     tardisDoorLeft = loadModelWithMaterial("tardis_door_left").model;
     tardisDoorRight = loadModelWithMaterial("tardis_door_right").model;
 
@@ -297,16 +309,6 @@ function rgbf(r, g, b) {
     return [r / 255.0, g / 255.0, b / 255.0];
 }
 
-function isInsideTardis() {
-    if(cx > 0.5 || cx < -0.5) {
-        return false;
-    }
-    if(cz > -1.5 || cz < -2.5) {
-        return false;
-    }
-    return true;
-}
-
 var insideTrigger = false;
 var insideTardis = false;
 
@@ -320,17 +322,17 @@ function render() {
         cachedFPS = Math.floor(1 / delta);
     }
 
-    if(doorDir == 1) {
+    if (doorDir == 1) {
         doorAngle += delta * 180;
-        if(doorAngle >= doorOpenAngle) {
+        if (doorAngle >= doorOpenAngle) {
             doorAngle = doorOpenAngle;
             doorDir = 0;
         }
     }
 
-    if(doorDir == -1) {
+    if (doorDir == -1) {
         doorAngle -= delta * 180;
-        if(doorAngle <= doorCloseAngle) {
+        if (doorAngle <= doorCloseAngle) {
             doorAngle = doorCloseAngle;
             doorDir = 0;
         }
@@ -338,7 +340,7 @@ function render() {
 
     var program = gouraud ? gouraudProgram : defaultProgram;
 
-    fpsCount++;
+    fpsCount++; 
 
     gl.useProgram(program);
     gl.uniform1f(gl.getUniformLocation(program, "useTexture"), false);
@@ -361,13 +363,13 @@ function render() {
 
     gl.uniform1f(gl.getUniformLocation(program, "blinn"), blinn ? 0.0 : 1.0);
 
-    var transformedView = mult(cameraLookAt, mult(rotateX(pitch), rotateY(yaw)));
-    gl.uniformMatrix4fv(gl.getUniformLocation(program, "view"), false, flatten(transformedView));
+    // var transformedView = mult(cameraLookAt, mult(rotateX(pitch), rotateY(yaw)));
+    gl.uniformMatrix4fv(gl.getUniformLocation(program, "view"), false, flatten(cameraLookAt));
     gl.uniformMatrix4fv(gl.getUniformLocation(program, "projection"), false, flatten(perspective(60, 1, 0.1, 100.0)));
 
-    var cx = transformedView[2][0] * -transformedView[2][3];
-    var cy = transformedView[2][1] * -transformedView[2][3];
-    var cz = transformedView[2][2] * -transformedView[2][3];
+    // var cx = transformedView[2][0] * -transformedView[2][3];
+    // var cy = transformedView[2][1] * -transformedView[2][3];
+    // var cz = transformedView[2][2] * -transformedView[2][3];
 
     gl.uniform3f(gl.getUniformLocation(program, "cameraPosition"), cx, cy, cz);
 
@@ -376,7 +378,6 @@ function render() {
     ctx.font = "16pt monospace";
     ctx.fillText("fps: " + cachedFPS + " pitch: " + pitch + " yaw: " + yaw, 10, 24);
     ctx.fillText((smooth ? "smooth" : "flat") + " shading (F), " + (gouraud ? "gouraud (G)" : (blinn ? "blinn-phong (B)" : "phong (B)")), 10, 48);
-    ctx.fillText("Inside TARDIS? " + isInsideTardis(), 10, 72);
 
     defaultMaterial.bind(program);
 
@@ -386,18 +387,19 @@ function render() {
     var tardisDoorRightModel = mult(translate(0.75, 0, -1), rotateY(-doorAngle));
     var tardisDoorLeftModel = mult(translate(-0.75, 0, -1), rotateY(doorAngle));
 
-    if(Math.abs(cz + 1) < 0.05) {
+    if (Math.abs(cz + 1) < 0.05) {
         insideTrigger = true;
     } else {
-        if(insideTrigger) {
+        if (insideTrigger) {
             insideTrigger = false;
-            if(-1 - cz <= 0) {
+            if (cz > -1) {
                 insideTardis = true;
             } else {
                 insideTardis = false;
             }
         }
     }
+    ctx.fillText("Inside TARDIS? " + insideTardis, 10, 72);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
@@ -406,21 +408,21 @@ function render() {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
 
-    if(!insideTardis) {
+    if (!insideTardis) {
         // Draw the inner walls of the tardis walls, setting 1 on the stencil buffer for each fragment drawn
         // Only draw the parts of the inner walls not occluded by the outer walls
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.FRONT);
         gl.stencilFunc(gl.ALWAYS, 1, 1);
         gl.stencilMask(1);
-        tardisExteriorStencil.bind(program, false);
+        tardisExteriorStencil.bind(program, smooth);
         tardisExteriorStencil.render(program, tardisExteriorModel);
 
         // Draw inner walls where stencil bit #1 is not 1, set stencil bit #2 to 1
         gl.disable(gl.CULL_FACE);
         gl.stencilFunc(gl.NOTEQUAL, 3, 1);
         gl.stencilMask(2);
-        tardisExteriorStencil.bind(program, false);
+        tardisExteriorStencil.bind(program, smooth);
         tardisExteriorStencil.render(program, tardisExteriorModel);
     }
 
@@ -429,20 +431,20 @@ function render() {
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
     !insideTardis && gl.stencilFunc(gl.EQUAL, 3, 2);
-    tardisInteriorV2.bind(program, false);
+    tardisInteriorV2.bind(program, smooth);
     tardisInteriorV2.render(program, tardisInteriorModel);
-
-    if(!insideTardis) {
+    
+    gl.stencilFunc(gl.NOTEQUAL, 2, 2);
+    gl.stencilMask(0);
+    if (!insideTardis) {
         // Draw outer walls, cover unnecessary surfaces
-        gl.stencilFunc(gl.NOTEQUAL, 2, 2);
-        gl.stencilMask(0);
-        tardisExterior.bind(program, false);
+        tardisExterior.bind(program, smooth);
         tardisExterior.render(program, tardisExteriorModel);
-
-        gl.disable(gl.STENCIL_TEST);
-        tardisDoorLeft.bind(program, false);
-        tardisDoorLeft.render(program, mult(tardisExteriorModel, tardisDoorRightModel));
-        tardisDoorRight.bind(program, false);
-        tardisDoorRight.render(program, mult(tardisExteriorModel, tardisDoorLeftModel));
     }
+
+    gl.disable(gl.STENCIL_TEST);
+    tardisDoorLeft.bind(program, smooth);
+    tardisDoorLeft.render(program, mult(tardisExteriorModel, tardisDoorRightModel));
+    tardisDoorRight.bind(program, smooth);
+    tardisDoorRight.render(program, mult(tardisExteriorModel, tardisDoorLeftModel));
 }
