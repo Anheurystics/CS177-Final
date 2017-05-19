@@ -32,7 +32,7 @@ var doorDir = 0;
 var insideTrigger = false;
 var insideTardis = false;
 var tardisFade = 0;
-var tardisFadeDir = 0;
+var tardisFadeDir = 1;
 
 var preloader = new Preloader(init);
 preloader.addImage("police.png");
