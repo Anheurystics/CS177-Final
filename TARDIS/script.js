@@ -265,7 +265,7 @@ function init() {
                 }
             }
         } else {
-            if (Math.abs(cz) < Math.abs(cx)) {
+            if ((Math.abs(cz) < 1.5 || Math.abs(cx) < 1.5) && Math.abs(cz) < Math.abs(cx)) {
                 if (cx > 0 && cx < 1.5) {
                     cx = 1.5;
                 }
@@ -411,14 +411,14 @@ function render() {
     gl.uniform1f(gl.getUniformLocation(program, "useTexture"), false);
 
     gl.uniform4f(gl.getUniformLocation(program, "lights[0].position"), -2.0, 2.0, 0.0, 0.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[0].color"), 0.0, 0.0, 1.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[0].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[0].attenuation"), 3.0, 0.1, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[0].intensity"), 10.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[0].direction"), 0.0, 0.0, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[0].angle"), 0.0);
 
     gl.uniform4f(gl.getUniformLocation(program, "lights[1].position"), 2.0, 2.0, 0.0, 0.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[1].color"), 1.0, 0.0, 0.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[1].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[1].attenuation"), 3.0, 0.1, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[1].intensity"), 10.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[1].direction"), 0.0, 0.0, 0.0);
