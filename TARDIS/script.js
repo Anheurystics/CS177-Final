@@ -2,7 +2,7 @@
 var gl, ctx,
     defaultProgram, gouraudProgram,
     camera, transform = mat4(),
-    usePerspective = false,
+    usePerspective = true,
     matrixStack = [],
     modelOutlines = false,
     cx = 0, cy = 2, cz = -8,
@@ -59,6 +59,7 @@ function playSequence() {
 var preloader = new Preloader(init);
 preloader.addImage("police.png");
 preloader.addImage("stjohn.png");
+preloader.addImage("publiccall.jpg");
 preloader.addImage("space.jpg");
 preloader.addImage("BaseTexture.png");
 preloader.addText("tardis_exterior.obj");
