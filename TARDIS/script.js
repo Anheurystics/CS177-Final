@@ -241,13 +241,16 @@ function init() {
             var dx = cx - centerX;
 
             var dist = Math.sqrt(dx * dx + dz * dz);
+            if(dist >= 6.5) {
+                cx = Math.min(0.5, Math.max(-0.5, cx));
+            }
             if(dist >= 7.5) {
                 var angle = Math.atan2(dx, dz);
                 
-                console.log(angle);
-
-                cz = centerZ + Math.cos(angle) * 7.5;
-                cx = centerX + Math.sin(angle) * 7.5;
+                if(cz >= 0.0 || Math.abs(cx) >= 0.5) {
+                    cz = centerZ + Math.cos(angle) * 7.5;
+                    cx = centerX + Math.sin(angle) * 7.5;
+                }
             }
         } else {
             if(Math.abs(cz) < Math.abs(cx)) {
