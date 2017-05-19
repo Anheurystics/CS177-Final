@@ -592,7 +592,7 @@ function render() {
     gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
 
     gl.uniformMatrix4fv(gl.getUniformLocation(program, "view"), false, flatten(cameraLookAt));
-    gl.uniformMatrix4fv(gl.getUniformLocation(program, "projection"), false, flatten(perspective(60, 1, 0.1, 100.0)));
+    gl.uniformMatrix4fv(gl.getUniformLocation(program, "projection"), false, flatten(usePerspective? perspective(60, 1, 0.1, 100.0) : ortho(-5, 5, -5, 5, 0.1, 100.0)));
 
     if (!insideTardis) {
         // Draw the inner walls of the tardis walls, setting 1 on the stencil buffer for each fragment drawn
