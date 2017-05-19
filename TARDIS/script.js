@@ -245,7 +245,7 @@ function init() {
             var dx = cx - centerX;
 
             var dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist >= 6.5) {
+            if (cz <= 1.0) {
                 cx = Math.min(0.5, Math.max(-0.5, cx));
             }
             if (dist >= 7.5) {
