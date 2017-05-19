@@ -10,7 +10,7 @@ var gl, ctx,
 var pitch = 0;
 var yaw = 0;
 function getCamera() {
-    return lookAt([cx, cy, cz], [cx + Math.sin(Math.PI / 180 * yaw), cy + Math.sin(Math.PI/180*pitch), cz + Math.cos(Math.PI / 180 * yaw)], [0, 1, 0]);
+    return lookAt([cx, cy, cz], [cx + Math.sin(Math.PI / 180 * yaw), cy + Math.sin(Math.PI / 180 * pitch), cz + Math.cos(Math.PI / 180 * yaw)], [0, 1, 0]);
 }
 
 var cameraLookAt = getCamera();
@@ -33,6 +33,10 @@ var insideTrigger = false;
 var insideTardis = false;
 var tardisFade = 0;
 var tardisFadeDir = 1;
+var tardisFadeMax = 1.821;
+function tardisFadeFunc(t) {
+    return Math.abs(Math.sin(t * 8)) * 0.15 + (t * 0.5);
+}
 
 var preloader = new Preloader(init);
 preloader.addImage("police.png");
@@ -95,10 +99,6 @@ function loadModelWithMaterial(name) {
         material: m,
         model: new Model(new OBJ(preloader.getText(name + ".obj"), m))
     }
-}
-
-function tardisFadeFunc(t) {
-    return Math.abs(Math.sin(t*5) * t*2) * 0.1 + (t * 0.1);
 }
 
 class Material {
@@ -211,9 +211,13 @@ function init() {
         var degsPerSecond = 180 / 60;
         var moveSpeed = 0.5;
 
-        if(e.code == "KeyY") {
-            tardisFade += 0.01 * tardisFadeDir;
-            tardisFade = Math.max(0.0, Math.min(tardisFade, 3.5));
+        if (e.code == "KeyY") {
+            if (doorAngle != doorCloseAngle) {
+                doorDir = -1;
+            } else {
+                tardisFade += 0.01 * tardisFadeDir;
+                tardisFade = Math.max(0.0, Math.min(tardisFade, tardisFadeMax));
+            }
         }
 
         if (e.code == "KeyW") {
@@ -231,9 +235,9 @@ function init() {
         if (e.code == "KeyD") {
             cz -= moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
             cx -= moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
-        }       
+        }
 
-        if(insideTardis) {
+        if (insideTardis) {
             var centerX = 0;
             var centerZ = 7;
 
@@ -241,30 +245,30 @@ function init() {
             var dx = cx - centerX;
 
             var dist = Math.sqrt(dx * dx + dz * dz);
-            if(dist >= 6.5) {
+            if (dist >= 6.5) {
                 cx = Math.min(0.5, Math.max(-0.5, cx));
             }
-            if(dist >= 7.5) {
+            if (dist >= 7.5) {
                 var angle = Math.atan2(dx, dz);
-                
-                if(cz >= 0.0 || Math.abs(cx) >= 0.5) {
+
+                if (cz >= 0.0 || Math.abs(cx) >= 0.5) {
                     cz = centerZ + Math.cos(angle) * 7.5;
                     cx = centerX + Math.sin(angle) * 7.5;
                 }
             }
         } else {
-            if(Math.abs(cz) < Math.abs(cx)) {
-                if(cx > 0 && cx < 1.5) {
+            if (Math.abs(cz) < Math.abs(cx)) {
+                if (cx > 0 && cx < 1.5) {
                     cx = 1.5;
                 }
-                if(cx < 0 && cx > -1.5) {
+                if (cx < 0 && cx > -1.5) {
                     cx = -1.5;
                 }
             } else {
-                if(cz > 0 && cz < 1.5) {
+                if (cz > 0 && cz < 1.5) {
                     cz = 1.5;
                 }
-                if(doorAngle == 0 && cz < 0 && cz > -1.5) {
+                if (doorAngle == 0 && cz < 0 && cz > -1.5) {
                     cz = -1.5;
                 }
             }
@@ -388,7 +392,7 @@ function render() {
 
     var program = gouraud ? gouraudProgram : defaultProgram;
 
-    fpsCount++; 
+    fpsCount++;
 
     gl.useProgram(program);
     gl.uniform1f(gl.getUniformLocation(program, "useTexture"), false);
@@ -490,7 +494,7 @@ function render() {
     gl.uniform1f(gl.getUniformLocation(program, "lights[2].enabled"), true);
 
     // Draw the interior only on the parts where the inner walls were drawn
-    if(tardisFadeFunc(tardisFade) == 0.0) {
+    if (tardisFadeFunc(tardisFade) == 0.0) {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
@@ -501,7 +505,7 @@ function render() {
         tardisPanel.bind(program, smooth);
         tardisPanel.render(program, tardisPanelModel);
     }
-    
+
     gl.uniform1f(gl.getUniformLocation(program, "lights[0].enabled"), true);
     gl.uniform1f(gl.getUniformLocation(program, "lights[1].enabled"), true);
     gl.uniform1f(gl.getUniformLocation(program, "lights[2].enabled"), false);

@@ -252,7 +252,6 @@ class OBJ extends Shape {
         if (currentMaterial) {
             this.materialGroups[currentMaterial][Object.keys(this.materialGroups[currentMaterial]).length - 1].end = this.vertices.length - 1;
         }
-        console.log(this.materialGroups);
     }
 
     render(program, outlines = false) {
