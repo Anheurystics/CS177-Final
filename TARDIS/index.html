@@ -60,6 +60,7 @@ uniform mat4 view;
 uniform vec3 cameraPosition;
 uniform bool blinn;
 uniform bool useTexture;
+uniform float alpha;
 
 vec3 calculateLight(Light light, vec3 camera, vec3 surface, vec3 normal) {
     vec3 L;
@@ -128,7 +129,7 @@ void main()
         totalLight.b /= maxComponent;
     }
 
-    gl_FragColor = vec4(totalLight, 1.0);
+    gl_FragColor = vec4(totalLight, alpha);
 }
 </script>
 

@@ -14,10 +14,14 @@ class Shape {
         this.vertexList = [];
         this.normalList = [];
         this.uvList = [];
+
+        this.scratch = [];
+        this.smoothNormalIndices = [];
     }
 
     addPosition(x, y, z) {
         this.vertexList.push(vec3(x, y, z));
+        this.scratch.push([]);
     }
 
     addNormal(x, y, z) {
@@ -34,13 +38,14 @@ class Shape {
         var v3 = this.vertexList[vIndices[2]];
         this.vertices.push(v1, v2, v3);
 
+        var n1, n2, n3;
         if (nIndices == undefined) {
-            var n = getNormal(v1, v2, v3);
-            this.normals.push(n, n, n);
+            n1 = n2 = n3 = getNormal(v1, v2, v3);
+            this.normals.push(n1, n2, n3);
         } else {
-            var n1 = this.normalList[nIndices[0]];
-            var n2 = this.normalList[nIndices[1]];
-            var n3 = this.normalList[nIndices[2]];
+            n1 = this.normalList[nIndices[0]];
+            n2 = this.normalList[nIndices[1]];
+            n3 = this.normalList[nIndices[2]];
             this.normals.push(n1, n2, n3);
         }
 
@@ -52,7 +57,32 @@ class Shape {
         }
 
         //TODO: Add proper smooth normals
-        this.smoothNormals.push(normalize(vec3(v1)), normalize(vec3(v2)), normalize(vec3(v3)));
+        // this.smoothNormals.push(normalize(vec3(v1)), normalize(vec3(v2)), normalize(vec3(v3)));
+
+        this.scratch[vIndices[0]].push(n1);
+        this.scratch[vIndices[1]].push(n2);
+        this.scratch[vIndices[2]].push(n3);
+        this.smoothNormalIndices.push(vIndices[0], vIndices[1], vIndices[2]);
+    }
+
+    buildSmoothNormals() {
+        var scratchNormals = [];
+        for (var i in this.scratch) {
+            var average = vec3();
+            for (var j in this.scratch[i]) {
+                average = add(average, this.scratch[i][j]);
+            }
+
+            average[0] /= this.scratch.length;
+            average[1] /= this.scratch.length;
+            average[2] /= this.scratch.length;
+
+            scratchNormals[i] = normalize(average);
+        }
+
+        for (var j in this.smoothNormalIndices) {
+            this.smoothNormals[j] = scratchNormals[this.smoothNormalIndices[j]];
+        }
     }
 
     render(program, outlines = false) {
