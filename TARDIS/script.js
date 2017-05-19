@@ -48,6 +48,7 @@ var preloader = new Preloader(init);
 preloader.addImage("police.png");
 preloader.addImage("stjohn.png");
 preloader.addImage("space.jpg");
+preloader.addImage("BaseTexture.png");
 preloader.addText("tardis_exterior.obj");
 preloader.addText("tardis_exterior.mtl");
 preloader.addText("tardis_exterior_stencil.obj");
@@ -419,42 +420,39 @@ function render() {
     gl.uniform4f(gl.getUniformLocation(program, "lights[1].position"), 2.0, 2.0, 0.0, 0.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[1].color"), 1.0, 0.0, 0.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[1].attenuation"), 3.0, 0.1, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[1].intensity"), 0.1);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[1].intensity"), 10.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[1].direction"), 0.0, 0.0, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[1].angle"), 0.0);
 
     gl.uniform4f(gl.getUniformLocation(program, "lights[2].position"), 0.0, 5.0, 7.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[2].color"), 1.0, 0.0, 0.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[2].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[2].attenuation"), 1.0, 0.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[2].intensity"), 0.1);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[2].intensity"), 0.5);
     gl.uniform3f(gl.getUniformLocation(program, "lights[2].direction"), 0.0, 0.0, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[2].angle"), 0.0);
 
     gl.uniform4f(gl.getUniformLocation(program, "lights[3].position"), 0.0, 1.0, 7.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[3].color"), 0.0, 0.0, 1.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[3].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[3].attenuation"), 1.0, 0.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[3].intensity"), 0.1);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[3].intensity"), 0.5);
     gl.uniform3f(gl.getUniformLocation(program, "lights[3].direction"), 0.0, 0.0, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[3].angle"), 0.0);
 
     gl.uniform4f(gl.getUniformLocation(program, "lights[4].position"), 0.0, 3.0, 9.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[4].color"), 1.0, 0.0, 0.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[4].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[4].attenuation"), 1.0, 0.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[4].intensity"), 0.1);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[4].intensity"), 0.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[4].direction"), 0.0, 0.0, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[4].angle"), 0.0);
 
     gl.uniform4f(gl.getUniformLocation(program, "lights[5].position"), 0.0, 3.0, 5.0, 1.0);
-    gl.uniform3f(gl.getUniformLocation(program, "lights[5].color"), 0.0, 0.0, 1.0);
+    gl.uniform3f(gl.getUniformLocation(program, "lights[5].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[5].attenuation"), 1.0, 0.0, 0.0);
-    gl.uniform1f(gl.getUniformLocation(program, "lights[5].intensity"), 0.1);
+    gl.uniform1f(gl.getUniformLocation(program, "lights[5].intensity"), 0.5);
     gl.uniform3f(gl.getUniformLocation(program, "lights[5].direction"), 0.0, 0.0, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[5].angle"), 0.0);
 
     gl.uniform1f(gl.getUniformLocation(program, "blinn"), blinn ? 0.0 : 1.0);
-
-    gl.uniformMatrix4fv(gl.getUniformLocation(program, "view"), false, flatten(cameraLookAt));
-
     gl.uniform3f(gl.getUniformLocation(program, "cameraPosition"), cx, cy, cz);
 
     ctx.clearRect(0, 0, 800, 800);
@@ -503,6 +501,7 @@ function render() {
     gl.uniform1f(gl.getUniformLocation(program, "lights[4].enabled"), false);
     gl.uniform1f(gl.getUniformLocation(program, "lights[5].enabled"), false);
 
+    gl.uniformMatrix4fv(gl.getUniformLocation(program, "view"), false, flatten(lookAt([0, 2, -8], [0, 2, -7], [0, 1, 0])));
     gl.uniformMatrix4fv(gl.getUniformLocation(program, "projection"), false, flatten(orthoCam));
 
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -521,6 +520,7 @@ function render() {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
 
+    gl.uniformMatrix4fv(gl.getUniformLocation(program, "view"), false, flatten(cameraLookAt));
     gl.uniformMatrix4fv(gl.getUniformLocation(program, "projection"), false, flatten(perspective(60, 1, 0.1, 100.0)));
 
     if (!insideTardis) {
