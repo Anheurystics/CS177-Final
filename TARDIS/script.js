@@ -34,6 +34,8 @@ var insideTardis = false;
 var tardisFade = 0;
 var tardisFadeDir = 1;
 var tardisFadeMax = 1.821;
+var tardisAngle = 0;
+var tardisAngleSpin = 50;
 function tardisFadeFunc(t) {
     return Math.abs(Math.sin(t * 8)) * 0.15 + (t * 0.5);
 }
@@ -390,6 +392,8 @@ function render() {
         }
     }
 
+    tardisAngle += delta * tardisAngleSpin;
+
     var program = gouraud ? gouraudProgram : defaultProgram;
 
     fpsCount++;
@@ -433,9 +437,16 @@ function render() {
 
     defaultMaterial.bind(program);
 
-    var tardisExteriorModel = mult(translate(0, 0, 0), mult(scalem(1, 1, 1), rotateY(0)));
-    var tardisInteriorModel = mult(translate(0, -3, 7), mult(scalem(1.5, 1.5, 1.5), rotateY(180)));
-    var tardisPanelModel = mult(translate(0, 0.0, 7), mult(scalem(0.5, 0.5, 0.5), rotateY(0)));
+    var tardisExteriorModel = mult(translate(0, 0, 0), mult(scalem(1, 1, 1), rotateY(tardisAngle)));
+    var tardisInteriorModel = mat4();
+    tardisInteriorModel = mult(tardisInteriorModel, rotateY(tardisAngle + 180));
+    tardisInteriorModel = mult(tardisInteriorModel, translate(0, -3, -7));
+    tardisInteriorModel = mult(tardisInteriorModel, scalem(1.5, 1.5, 1.5));
+
+    var tardisPanelModel = mat4();
+    tardisPanelModel = mult(tardisPanelModel, rotateY(tardisAngle));
+    tardisPanelModel = mult(tardisPanelModel, translate(0, 0, 7));
+    tardisPanelModel = mult(tardisPanelModel, scalem(0.5, 0.5, 0.5));
 
     var tardisDoorRightModel = mult(translate(0.75, 0, -1), rotateY(-doorAngle));
     var tardisDoorLeftModel = mult(translate(-0.75, 0, -1), rotateY(doorAngle));
