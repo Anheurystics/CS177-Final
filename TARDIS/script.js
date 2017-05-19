@@ -39,9 +39,21 @@ var tardisFade = 0;
 var tardisFadeDir = 1;
 var tardisFadeMax = 1.821;
 var tardisAngle = 0;
-var tardisAngleSpin = 00;
+var tardisAngleSpin = 0;
+var startX = 0, startY = 0;
+var endX = 0, endY = 0;
+var seqT = 0;
 function tardisFadeFunc(t) {
     return Math.abs(Math.sin(t * 8)) * 0.15 + (t * 0.5);
+}
+
+var playingSequence = false;
+var sequencePart = 0;
+function playSequence() {
+    playingSequence = true;
+    sequencePart = 1;
+    tardisFade = 0;
+    tardisFadeDir = 1;
 }
 
 var preloader = new Preloader(init);
@@ -214,17 +226,25 @@ function init() {
                 doorDir = -1;
             }
         }
+
+        if (e.code == "KeyU") {
+            if (!playingSequence) {
+                playSequence();
+            }
+        }
     }
     window.onkeydown = function (e) {
         var degsPerSecond = 180 / 60;
         var moveSpeed = 0.5;
 
         if (e.code == "KeyY") {
-            if (doorAngle != doorCloseAngle) {
-                doorDir = -1;
-            } else {
-                tardisFade += 0.01 * tardisFadeDir;
-                tardisFade = Math.max(0.0, Math.min(tardisFade, tardisFadeMax));
+            if (!insideTardis) {
+                if (doorAngle != doorCloseAngle) {
+                    doorDir = -1;
+                } else {
+                    tardisFade += 0.01 * tardisFadeDir;
+                    tardisFade = Math.max(0.0, Math.min(tardisFade, tardisFadeMax));
+                }
             }
         }
 
@@ -385,6 +405,71 @@ function render() {
         cachedFPS = Math.floor(1 / delta);
     }
 
+    var tardisExteriorModel = mult(translate(0, 0, 0), mult(scalem(1, 1, 1), rotateY(tardisAngle)));
+    var tardisInteriorModel = mat4();
+    tardisInteriorModel = mult(tardisInteriorModel, rotateY(tardisAngle + 180));
+    tardisInteriorModel = mult(tardisInteriorModel, translate(0, -3, -7));
+    tardisInteriorModel = mult(tardisInteriorModel, scalem(1.5, 1.5, 1.5));
+
+    var tardisPanelModel = mat4();
+    tardisPanelModel = mult(tardisPanelModel, rotateY(tardisAngle));
+    tardisPanelModel = mult(tardisPanelModel, translate(0, 0, 7));
+    tardisPanelModel = mult(tardisPanelModel, scalem(0.5, 0.5, 0.5));
+
+    var tardisDoorRightModel = mult(translate(0.75, 0, -1), rotateY(-doorAngle));
+    var tardisDoorLeftModel = mult(translate(-0.75, 0, -1), rotateY(doorAngle));
+
+    var tardisFadeSpeed = 0.02;
+    if (!insideTardis && playingSequence) {
+        if (sequencePart == 1) {
+            if (doorAngle != doorCloseAngle) {
+                doorDir = -1;
+            } else {
+                tardisFade += tardisFadeSpeed;
+                tardisFade = Math.max(0.0, Math.min(tardisFade, tardisFadeMax));
+
+                if (tardisFade == tardisFadeMax) {
+                    sequencePart = 2;
+                    seqT = 0.0;
+
+                    startX = -5;
+                    startY = Math.random() * -5 + 5;
+
+                    endX = 5;
+                    endY = Math.random() * -5 + 5;
+
+                    tardisFade = 0;
+
+                    tardisAngleSpin = 60;
+                }
+            }
+        } else if (sequencePart == 2) {
+            seqT += delta * 0.25;
+            tardisExteriorModel = mult(translate(startX + ((endX - startX) * seqT), startY + ((endY - startY) * seqT), 0), mult(scalem(0.25, 0.25, 0.25), rotateY(tardisAngle)));
+            if (seqT >= 1.0) {
+                sequencePart = 3;
+                tardisFadeDir = -1;
+                tardisFade = tardisFadeMax;
+                tardisAngleSpin = 0;
+                tardisAngle = 0;
+            }
+        } else if (sequencePart == 3) {
+            if (doorAngle != doorCloseAngle) {
+                doorDir = -1;
+            } else {
+                tardisFade -= tardisFadeSpeed;
+                tardisFade = Math.max(0.0, Math.min(tardisFade, tardisFadeMax));
+
+                if (tardisFade == 0) {
+                    sequencePart = 0;
+                    tardisFadeDir = 0;
+                    playingSequence = false;
+
+                }
+            }
+        }
+    }
+
     if (doorDir == 1) {
         doorAngle += delta * 180;
         if (doorAngle >= doorOpenAngle) {
@@ -410,14 +495,14 @@ function render() {
     gl.useProgram(program);
     gl.uniform1f(gl.getUniformLocation(program, "useTexture"), false);
 
-    gl.uniform4f(gl.getUniformLocation(program, "lights[0].position"), -2.0, 2.0, 0.0, 0.0);
+    gl.uniform4f(gl.getUniformLocation(program, "lights[0].position"), -2.0, 2.0, -2.0, 0.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[0].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[0].attenuation"), 3.0, 0.1, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[0].intensity"), 10.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[0].direction"), 0.0, 0.0, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[0].angle"), 0.0);
 
-    gl.uniform4f(gl.getUniformLocation(program, "lights[1].position"), 2.0, 2.0, 0.0, 0.0);
+    gl.uniform4f(gl.getUniformLocation(program, "lights[1].position"), 2.0, 2.0, 2.0, 0.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[1].color"), 1.0, 1.0, 1.0);
     gl.uniform3f(gl.getUniformLocation(program, "lights[1].attenuation"), 3.0, 0.1, 0.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[1].intensity"), 10.0);
@@ -463,20 +548,6 @@ function render() {
 
     defaultMaterial.bind(program);
 
-    var tardisExteriorModel = mult(translate(0, 0, 0), mult(scalem(1, 1, 1), rotateY(tardisAngle)));
-    var tardisInteriorModel = mat4();
-    tardisInteriorModel = mult(tardisInteriorModel, rotateY(tardisAngle + 180));
-    tardisInteriorModel = mult(tardisInteriorModel, translate(0, -3, -7));
-    tardisInteriorModel = mult(tardisInteriorModel, scalem(1.5, 1.5, 1.5));
-
-    var tardisPanelModel = mat4();
-    tardisPanelModel = mult(tardisPanelModel, rotateY(tardisAngle));
-    tardisPanelModel = mult(tardisPanelModel, translate(0, 0, 7));
-    tardisPanelModel = mult(tardisPanelModel, scalem(0.5, 0.5, 0.5));
-
-    var tardisDoorRightModel = mult(translate(0.75, 0, -1), rotateY(-doorAngle));
-    var tardisDoorLeftModel = mult(translate(-0.75, 0, -1), rotateY(doorAngle));
-
     if (Math.abs(cz + 1) < 0.05 && Math.abs(cx) <= 0.5) {
         insideTrigger = true;
     } else {
@@ -508,7 +579,7 @@ function render() {
 
     gl.disable(gl.STENCIL_TEST);
 
-    var bgMatrix = mult(translate(0, 2.0, 0), scalem(0.25, 0.25, 0.25));
+    var bgMatrix = mult(mult(rotateY(180), translate(0, 2.0, 0)), scalem(0.5, 0.25, 0.25));
     bgMaterial.bind(program);
     bg.bind(program, false);
     bg.render(program, bgMatrix);
@@ -553,12 +624,12 @@ function render() {
     gl.uniform1f(gl.getUniformLocation(program, "lights[4].enabled"), true);
     gl.uniform1f(gl.getUniformLocation(program, "lights[5].enabled"), true);
 
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    !insideTardis && gl.stencilFunc(gl.EQUAL, 3, 2);
     // Draw the interior only on the parts where the inner walls were drawn
-    if (tardisFadeFunc(tardisFade) == 0.0) {
-        gl.clear(gl.DEPTH_BUFFER_BIT);
-        gl.enable(gl.CULL_FACE);
-        gl.cullFace(gl.BACK);
-        !insideTardis && gl.stencilFunc(gl.EQUAL, 3, 2);
+    if ((sequencePart != 2) && tardisFadeFunc(tardisFade) == 0.0) {
         tardisInterior.bind(program, smooth);
         tardisInterior.render(program, tardisInteriorModel);
         tardisPanel.bind(program, smooth);
