@@ -136,14 +136,12 @@ void main()
 <script id="gouraud-vertex-shader" type="x-shader/x-vertex">
 attribute vec3 vPosition;
 attribute vec3 vNormal;
+attribute vec2 vUV;
 
-uniform vec3 color;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 normalMatrix;
-uniform vec3 cameraPosition;
-uniform bool blinn;
 
 struct Light {
     bool enabled;
@@ -156,8 +154,21 @@ struct Light {
     float angle;
 };
 
+uniform vec3 Ka;
+uniform vec3 Kd;
+uniform vec3 Ks;
+uniform float Ns;
+
 #define MAX_NUM_LIGHTS 16
 uniform Light lights[MAX_NUM_LIGHTS];
+
+uniform bool useTexture;
+uniform vec3 cameraPosition;
+uniform bool blinn;
+uniform float alpha;
+
+varying vec2 UV;
+varying vec3 Color;
 
 vec3 calculateLight(Light light, vec3 camera, vec3 surface, vec3 normal) {
     vec3 L;
@@ -172,15 +183,10 @@ vec3 calculateLight(Light light, vec3 camera, vec3 surface, vec3 normal) {
     vec3 E = normalize(camera - surface);
     vec3 H = normalize(L + E);
 
-    float kD = 1.0;
-    float kS = 1.0;
-    float shininess = 25.0;
-    if(blinn)
-        shininess *= 4.0;
-
-    vec3 diffuse = kD * max(dot(normal, L), 0.0) * light.color;
+    vec3 diffuse = Kd * max(dot(normal, L), 0.0) * light.color;
     float specularBase = blinn? dot(normal, H) : dot(normalize(camera - surface), reflect(-L, normal));
-    vec3 specular = kS * pow(max(specularBase, 0.0), shininess) * light.color;
+    vec3 specular = Ks * pow(max(specularBase, 0.0), Ns) * light.color;
+    specular = max(specular, 0.0);
 
     vec3 attenuationFactor = light.attenuation;
 
@@ -196,21 +202,24 @@ vec3 calculateLight(Light light, vec3 camera, vec3 surface, vec3 normal) {
     }
 
     float attenuation = light.intensity / dot(vec3(1.0, D, D * D), attenuationFactor);
+
     return attenuation * (diffuse + specular);
 }
-
-varying vec3 TotalLight;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(vPosition, 1.0);
-    
-    vec3 Color = color;
     vec3 Normal = normalize(vec3(normalMatrix * vec4(vNormal, 1.0)));
     vec3 FragPosition = vec3(model * vec4(vPosition, 1.0));
+    UV = vUV;
 
-    float kA = 0.5;
-    vec3 totalLight = kA * Color;
+    vec3 totalLight = vec3(0.0, 0.0, 0.0);
+
+    if(useTexture) {
+        
+    } else {
+        totalLight = Ka * Kd;
+    }
 
     for(int i = 0; i < MAX_NUM_LIGHTS; i++) {
         if(lights[i].enabled) {
@@ -225,18 +234,36 @@ void main()
         totalLight.b /= maxComponent;
     }
 
-    TotalLight = totalLight;
+    Color = totalLight;
 }
 </script>
 
 <script id="gouraud-fragment-shader" type="x-shader/x-fragment">
 precision highp float;
 
-varying vec3 TotalLight;
+varying vec3 Color;
+varying vec2 UV;
+
+uniform bool useTexture;
+uniform sampler2D tex;
+uniform vec3 Ka;
+uniform vec3 Kd;
 
 void main()
 {
-    gl_FragColor = vec4(TotalLight, 1.0);
+    gl_FragColor = vec4(Color, 1.0);
+
+    if(useTexture) {
+        vec2 uv = UV;
+        uv.y = 1.0 - uv.y;
+        
+        vec4 texColor = texture2D(tex, uv);
+        if(texColor.a != 1.0) {
+            gl_FragColor.rgb += Ka * Kd;
+        } else {
+            gl_FragColor.rgb += texColor.rgb;
+        }
+    }
 }
 </script>
 
