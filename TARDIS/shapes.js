@@ -210,14 +210,10 @@ class OBJ extends Shape {
             var line = lines[i];
             var split = line.split(" ");
             if (split[0] == "usemtl") {
-                if (split[1] == "None") {
-                    continue;
-                }
-
                 if (currentMaterial != undefined) {
                     currentRange.end = this.vertices.length;
                 }
-
+                
                 if (this.materialGroups[split[1]] == undefined) {
                     this.materialGroups[split[1]] = [];
                 }
@@ -256,6 +252,7 @@ class OBJ extends Shape {
         if (currentMaterial) {
             this.materialGroups[currentMaterial][Object.keys(this.materialGroups[currentMaterial]).length - 1].end = this.vertices.length - 1;
         }
+        console.log(this.materialGroups);
     }
 
     render(program, outlines = false) {
@@ -270,6 +267,7 @@ class OBJ extends Shape {
             for (var key in this.materialGroups) {
                 var group = this.materialGroups[key];
                 this.material[key].bind(program);
+
                 for (var i in group) {
                     var range = group[i];
                     gl.drawArrays(gl.TRIANGLES, range.start, range.end - range.start + 1);
