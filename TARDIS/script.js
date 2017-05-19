@@ -233,6 +233,22 @@ function init() {
             cx -= moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
         }       
 
+        if(insideTardis) {
+            var centerX = 0;
+            var centerZ = 7;
+
+            var dz = cz - centerZ;
+            var dx = cx - centerX;
+
+            var dist = Math.sqrt(dx * dx + dz * dz);
+            if(dist >= 7.5) {
+                var angle = Math.atan2(dx, dz);
+                
+                cz = centerZ + Math.cos(angle) * 7.5;
+                cx = centerX + Math.sin(angle) * 7.5;
+            }
+        }
+
         if (e.code == "ArrowDown") {
             pitch -= degsPerSecond;
         }
@@ -399,19 +415,21 @@ function render() {
     var tardisDoorRightModel = mult(translate(0.75, 0, -1), rotateY(-doorAngle));
     var tardisDoorLeftModel = mult(translate(-0.75, 0, -1), rotateY(doorAngle));
 
-    if (Math.abs(cz + 1) < 0.05 && Math.abs(cx) <= 0.5) {
+    if (Math.abs(cz + 0.0) < 0.05 && Math.abs(cx) <= 0.5) {
         insideTrigger = true;
     } else {
         if (insideTrigger) {
             insideTrigger = false;
-            if (cz > -1) {
+            if (cz > -0.0) {
                 insideTardis = true;
             } else {
                 insideTardis = false;
             }
         }
     }
+
     ctx.fillText("Inside TARDIS? " + insideTardis, 10, 72);
+    ctx.fillText("cx: " + cx + " cz: " + cz, 10, 96);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
