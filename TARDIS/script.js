@@ -54,6 +54,12 @@ function playSequence() {
     sequencePart = 1;
     tardisFade = 0;
     tardisFadeDir = 1;
+
+    pitch = 0;
+    yaw = 0;
+    cx = 0;
+    cy = 2;
+    cz = -8;
 }
 
 var preloader = new Preloader(init);
@@ -219,7 +225,7 @@ function init() {
     var canvas = document.getElementById("gl-canvas");
     ctx = document.getElementById("overlay").getContext("2d");
     window.onkeyup = function (e) {
-        if (e.code == "KeyT") {
+        if (!playingSequence && e.code == "KeyT") {
             if (doorAngle == doorCloseAngle) {
                 doorDir = 1;
             }
@@ -238,85 +244,87 @@ function init() {
         var degsPerSecond = 180 / 60;
         var moveSpeed = 0.5;
 
-        if (e.code == "KeyY") {
-            if (!insideTardis) {
-                if (doorAngle != doorCloseAngle) {
-                    doorDir = -1;
-                } else {
-                    tardisFade += 0.01 * tardisFadeDir;
-                    tardisFade = Math.max(0.0, Math.min(tardisFade, tardisFadeMax));
-                }
+        // if (e.code == "KeyY") {
+        //     if (!insideTardis) {
+        //         if (doorAngle != doorCloseAngle) {
+        //             doorDir = -1;
+        //         } else {
+        //             tardisFade += 0.01 * tardisFadeDir;
+        //             tardisFade = Math.max(0.0, Math.min(tardisFade, tardisFadeMax));
+        //         }
+        //     }
+        // }
+
+        if(!playingSequence) {
+            if (e.code == "KeyW") {
+                cz += moveSpeed * Math.cos(Math.PI / 180 * yaw);
+                cx += moveSpeed * Math.sin(Math.PI / 180 * yaw);
             }
-        }
-
-        if (e.code == "KeyW") {
-            cz += moveSpeed * Math.cos(Math.PI / 180 * yaw);
-            cx += moveSpeed * Math.sin(Math.PI / 180 * yaw);
-        }
-        if (e.code == "KeyS") {
-            cz -= moveSpeed * Math.cos(Math.PI / 180 * yaw);
-            cx -= moveSpeed * Math.sin(Math.PI / 180 * yaw);
-        }
-        if (e.code == "KeyA") {
-            cz += moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
-            cx += moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
-        }
-        if (e.code == "KeyD") {
-            cz -= moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
-            cx -= moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
-        }
-
-        if (insideTardis) {
-            var centerX = 0;
-            var centerZ = 7;
-
-            var dz = cz - centerZ;
-            var dx = cx - centerX;
-
-            var dist = Math.sqrt(dx * dx + dz * dz);
-            if (cz <= 1.0) {
-                cx = Math.min(0.5, Math.max(-0.5, cx));
+            if (e.code == "KeyS") {
+                cz -= moveSpeed * Math.cos(Math.PI / 180 * yaw);
+                cx -= moveSpeed * Math.sin(Math.PI / 180 * yaw);
             }
-            if (dist >= 7.5) {
-                var angle = Math.atan2(dx, dz);
-
-                if (cz >= 0.0 || Math.abs(cx) >= 0.5) {
-                    cz = centerZ + Math.cos(angle) * 7.5;
-                    cx = centerX + Math.sin(angle) * 7.5;
-                }
+            if (e.code == "KeyA") {
+                cz += moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
+                cx += moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
             }
-        } else {
-            if ((Math.abs(cz) < 1.5 || Math.abs(cx) < 1.5) && Math.abs(cz) < Math.abs(cx)) {
-                if (cx > 0 && cx < 1.5) {
-                    cx = 1.5;
+            if (e.code == "KeyD") {
+                cz -= moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
+                cx -= moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
+            }
+
+            if (insideTardis) {
+                var centerX = 0;
+                var centerZ = 7;
+
+                var dz = cz - centerZ;
+                var dx = cx - centerX;
+
+                var dist = Math.sqrt(dx * dx + dz * dz);
+                if (cz <= 1.0) {
+                    cx = Math.min(0.5, Math.max(-0.5, cx));
                 }
-                if (cx < 0 && cx > -1.5) {
-                    cx = -1.5;
+                if (dist >= 7.5) {
+                    var angle = Math.atan2(dx, dz);
+
+                    if (cz >= 0.0 || Math.abs(cx) >= 0.5) {
+                        cz = centerZ + Math.cos(angle) * 7.5;
+                        cx = centerX + Math.sin(angle) * 7.5;
+                    }
                 }
             } else {
-                if (cz > 0 && cz < 1.5) {
-                    cz = 1.5;
-                }
-                if (doorAngle == 0 && cz < 0 && cz > -1.5) {
-                    cz = -1.5;
+                if ((Math.abs(cz) < 1.5 || Math.abs(cx) < 1.5) && Math.abs(cz) < Math.abs(cx)) {
+                    if (cx > 0 && cx < 1.5) {
+                        cx = 1.5;
+                    }
+                    if (cx < 0 && cx > -1.5) {
+                        cx = -1.5;
+                    }
+                } else {
+                    if (cz > 0 && cz < 1.5) {
+                        cz = 1.5;
+                    }
+                    if (doorAngle == 0 && cz < 0 && cz > -1.5) {
+                        cz = -1.5;
+                    }
                 }
             }
-        }
 
-        if (e.code == "ArrowDown") {
-            pitch -= degsPerSecond;
-        }
-        if (e.code == "ArrowUp") {
-            pitch += degsPerSecond;
-        }
-        if (e.code == "ArrowLeft") {
-            yaw += degsPerSecond
-        }
-        if (e.code == "ArrowRight") {
-            yaw -= degsPerSecond;
-        }
+            if (e.code == "ArrowDown") {
+                pitch -= degsPerSecond;
+            }
+            if (e.code == "ArrowUp") {
+                pitch += degsPerSecond;
+            }
+            if (e.code == "ArrowLeft") {
+                yaw += degsPerSecond
+            }
+            if (e.code == "ArrowRight") {
+                yaw -= degsPerSecond;
+            }
 
-        cameraLookAt = getCamera();
+            cameraLookAt = getCamera();
+        }
 
         if (e.code == "KeyO") {
             modelOutlines = !modelOutlines;
@@ -542,10 +550,15 @@ function render() {
     gl.uniform3f(gl.getUniformLocation(program, "cameraPosition"), cx, cy, cz);
 
     ctx.clearRect(0, 0, 800, 800);
-    ctx.fillStyle = "#000000";
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fillRect(0, 0, 800, 96);
+
+    ctx.fillStyle = "#FFFFFF";
     ctx.font = "16pt monospace";
-    ctx.fillText("fps: " + cachedFPS + " pitch: " + pitch + " yaw: " + yaw, 10, 24);
+    ctx.fillText("fps: " + cachedFPS, 10, 24);
     ctx.fillText((smooth ? "smooth" : "flat") + " shading (F), " + (gouraud ? "gouraud (G)" : (blinn ? "blinn-phong (B)" : "phong (B)")), 10, 48);
+    ctx.fillText("open/close doors (T), start animation (U)", 10, 72);
 
     defaultMaterial.bind(program);
 
@@ -561,9 +574,6 @@ function render() {
             }
         }
     }
-
-    ctx.fillText("Inside TARDIS? " + insideTardis, 10, 72);
-    ctx.fillText("cx: " + cx + " cz: " + cz, 10, 96);
 
     gl.uniform1f(gl.getUniformLocation(program, "alpha"), 1.0);
     gl.uniform1f(gl.getUniformLocation(program, "lights[0].enabled"), false);
