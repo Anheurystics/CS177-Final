@@ -221,132 +221,43 @@ class Model {
     }
 }
 
+var keyMap = new Map();
+
 function init() {
     var canvas = document.getElementById("gl-canvas");
     ctx = document.getElementById("overlay").getContext("2d");
     window.onkeyup = function (e) {
-        if (!playingSequence && e.code == "KeyT") {
-            if (doorAngle == doorCloseAngle) {
-                doorDir = 1;
-            }
-            if (doorAngle == doorOpenAngle) {
-                doorDir = -1;
-            }
-        }
-
-        if (e.code == "KeyU") {
-            if (!playingSequence) {
-                playSequence();
-            }
-        }
+        keyMap.set(e.code, false);
     }
     window.onkeydown = function (e) {
-        var degsPerSecond = 180 / 60;
-        var moveSpeed = 0.5;
-
-        // if (e.code == "KeyY") {
-        //     if (!insideTardis) {
-        //         if (doorAngle != doorCloseAngle) {
-        //             doorDir = -1;
-        //         } else {
-        //             tardisFade += 0.01 * tardisFadeDir;
-        //             tardisFade = Math.max(0.0, Math.min(tardisFade, tardisFadeMax));
-        //         }
-        //     }
-        // }
-
-        if(!playingSequence) {
-            if (e.code == "KeyW") {
-                cz += moveSpeed * Math.cos(Math.PI / 180 * yaw);
-                cx += moveSpeed * Math.sin(Math.PI / 180 * yaw);
-            }
-            if (e.code == "KeyS") {
-                cz -= moveSpeed * Math.cos(Math.PI / 180 * yaw);
-                cx -= moveSpeed * Math.sin(Math.PI / 180 * yaw);
-            }
-            if (e.code == "KeyA") {
-                cz += moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
-                cx += moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
-            }
-            if (e.code == "KeyD") {
-                cz -= moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
-                cx -= moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
-            }
-
-            if (insideTardis) {
-                var centerX = 0;
-                var centerZ = 7;
-
-                var dz = cz - centerZ;
-                var dx = cx - centerX;
-
-                var dist = Math.sqrt(dx * dx + dz * dz);
-                if (cz <= 1.0) {
-                    cx = Math.min(0.5, Math.max(-0.5, cx));
+        if(!keyMap.get(e.code)) {
+            if (!playingSequence && e.code == "KeyT") {
+                if (doorAngle == doorCloseAngle) {
+                    doorDir = 1;
                 }
-                if (dist >= 7.5) {
-                    var angle = Math.atan2(dx, dz);
-
-                    if (cz >= 0.0 || Math.abs(cx) >= 0.5) {
-                        cz = centerZ + Math.cos(angle) * 7.5;
-                        cx = centerX + Math.sin(angle) * 7.5;
-                    }
-                }
-            } else {
-                if ((Math.abs(cz) < 1.5 || Math.abs(cx) < 1.5) && Math.abs(cz) < Math.abs(cx)) {
-                    if (cx > 0 && cx < 1.5) {
-                        cx = 1.5;
-                    }
-                    if (cx < 0 && cx > -1.5) {
-                        cx = -1.5;
-                    }
-                } else {
-                    if (cz > 0 && cz < 1.5) {
-                        cz = 1.5;
-                    }
-                    if (doorAngle == 0 && cz < 0 && cz > -1.5) {
-                        cz = -1.5;
-                    }
+                if (doorAngle == doorOpenAngle) {
+                    doorDir = -1;
                 }
             }
-
-            if (e.code == "ArrowDown") {
-                pitch -= degsPerSecond;
+    
+            if (e.code == "KeyU") {
+                if (!playingSequence) {
+                    playSequence();
+                }
             }
-            if (e.code == "ArrowUp") {
-                pitch += degsPerSecond;
+            if (e.code == "KeyO") { modelOutlines = !modelOutlines; }
+            if (e.code == "KeyP") { usePerspective = !usePerspective; }
+            if (e.code == "KeyF") { smooth = !smooth; }
+            if (e.code == "KeyB") { blinn = !blinn; }
+            if (e.code == "KeyG") { gouraud = !gouraud; }
+    
+            for(var i = 0; i < 7; i++) {
+                if(e.code == "Digit" + (i + 1)) {
+                    lightEnabled[i] = !lightEnabled[i];
+                }
             }
-            if (e.code == "ArrowLeft") {
-                yaw += degsPerSecond
-            }
-            if (e.code == "ArrowRight") {
-                yaw -= degsPerSecond;
-            }
-
-            cameraLookAt = getCamera();
         }
-
-        if (e.code == "KeyO") {
-            modelOutlines = !modelOutlines;
-        }
-        if (e.code == "KeyP") {
-            usePerspective = !usePerspective;
-        }
-
-        if (e.code == "KeyF") {
-            smooth = !smooth;
-        }
-        if (e.code == "KeyB") {
-            blinn = !blinn;
-        }
-        if (e.code == "KeyG") {
-            gouraud = !gouraud;
-        }
-
-        if (parseInt(e.key) >= 1 && parseInt(e.key) <= 7) {
-            var index = parseInt(e.key) - 1;
-            lightEnabled[index] = !lightEnabled[index];
-        }
+        keyMap.set(e.code, true);
     }
 
     gl = WebGLUtils.setupWebGL(canvas, { stencil: true });
@@ -404,6 +315,74 @@ function rgbf(r, g, b) {
     return [r / 255.0, g / 255.0, b / 255.0];
 }
 
+function processInput(delta) {
+    var degsPerSecond = 120;
+    var moveSpeed = 10;
+
+    if(!playingSequence) {
+        if (keyMap.get("KeyW")) {
+            cz += delta * moveSpeed * Math.cos(Math.PI / 180 * yaw);
+            cx += delta * moveSpeed * Math.sin(Math.PI / 180 * yaw);
+        }
+        if (keyMap.get("KeyS")) {
+            cz -= delta * moveSpeed * Math.cos(Math.PI / 180 * yaw);
+            cx -= delta * moveSpeed * Math.sin(Math.PI / 180 * yaw);
+        }
+        if (keyMap.get("KeyA")) {
+            cz += delta * moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
+            cx += delta * moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
+        }
+        if (keyMap.get("KeyD")) {
+            cz -= delta * moveSpeed * Math.cos(Math.PI / 180 * (yaw + 90));
+            cx -= delta * moveSpeed * Math.sin(Math.PI / 180 * (yaw + 90));
+        }
+
+        if (insideTardis) {
+            var centerX = 0;
+            var centerZ = 7;
+
+            var dz = cz - centerZ;
+            var dx = cx - centerX;
+
+            var dist = Math.sqrt(dx * dx + dz * dz);
+            if (cz <= 1.0) {
+                cx = Math.min(0.5, Math.max(-0.5, cx));
+            }
+            if (dist >= 7.5) {
+                var angle = Math.atan2(dx, dz);
+
+                if (cz >= 0.0 || Math.abs(cx) >= 0.5) {
+                    cz = centerZ + Math.cos(angle) * 7.5;
+                    cx = centerX + Math.sin(angle) * 7.5;
+                }
+            }
+        } else {
+            if ((Math.abs(cz) < 1.5 || Math.abs(cx) < 1.5) && Math.abs(cz) < Math.abs(cx)) {
+                if (cx > 0 && cx < 1.5) {
+                    cx = 1.5;
+                }
+                if (cx < 0 && cx > -1.5) {
+                    cx = -1.5;
+                }
+            } else {
+                if (cz > 0 && cz < 1.5) {
+                    cz = 1.5;
+                }
+                if (doorAngle == 0 && cz < 0 && cz > -1.5) {
+                    cz = -1.5;
+                }
+            }
+        }
+
+        if (keyMap.get("ArrowDown")) { pitch -= delta * degsPerSecond; }
+        if (keyMap.get("ArrowUp")) { pitch += delta * degsPerSecond; }
+        if (keyMap.get("ArrowLeft")) { yaw += delta * degsPerSecond }
+        if (keyMap.get("ArrowRight")) { yaw -= delta * degsPerSecond; }
+
+        cameraLookAt = getCamera();
+    }
+}
+
 function render() {
     window.requestAnimFrame(render);
 
@@ -413,6 +392,8 @@ function render() {
     if (fpsCount % 15 == 0) {
         cachedFPS = Math.floor(1 / delta);
     }
+
+    processInput(delta);
 
     var tardisExteriorModel = mult(translate(0, 0, 0), mult(scalem(1, 1, 1), rotateY(tardisAngle)));
     var tardisInteriorModel = mat4();
